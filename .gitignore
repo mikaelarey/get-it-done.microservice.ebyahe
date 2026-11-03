@@ -1,0 +1,59 @@
+# .NET build and publish output
+**/bin/
+**/obj/
+artifacts/
+publish/
+
+# IDE caches and per-user settings
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+# Test results and coverage reports
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+coverage.cobertura.xml
+coverage.opencover.xml
+
+# Logs and temporary files
+logs/
+*.log
+*.binlog
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.bak
+*~
+
+# Local credentials and configuration; keep shared environment settings
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.sample
+!.env.template
+appsettings.[Ll]ocal.json
+appsettings.*.[Ll]ocal.json
+secrets.json
+*.pfx
+*.p12
+*.key
+*.private.pem
+
+# Local SQL Server data files
+*.mdf
+*.ldf
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

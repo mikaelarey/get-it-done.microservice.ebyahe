@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class PartnerApplicationReviewRepository(EByaheDbContext database, IOptions<KafkaOptions>? kafka = null) : IPartnerApplicationReviewRepository
+public sealed class PartnerApplicationReviewRepository(EByaheDbContext database, IOptions<KafkaOptions>? kafka = null, IRecordChangePublisher? changes = null) : IPartnerApplicationReviewRepository
 {
   public async Task<PartnerApplicationDecisionResult> DecideAsync(Guid id, string status, string reviewer, string? remarks, CancellationToken cancellationToken)
   {
@@ -61,6 +61,7 @@ public sealed class PartnerApplicationReviewRepository(EByaheDbContext database,
     // Partner, owner membership, approval, history, and outbox events commit together.
     await database.SaveChangesAsync(cancellationToken);
     await transaction.CommitAsync(cancellationToken);
+    if (changes is not null) await changes.PublishAsync(["applications", "partners"], application.CreatedBy, ct: cancellationToken);
     return new(application);
   }
 

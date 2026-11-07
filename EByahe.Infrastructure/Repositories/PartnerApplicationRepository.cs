@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class PartnerApplicationRepository(EByaheDbContext database) : IPartnerApplicationRepository
+public sealed class PartnerApplicationRepository(EByaheDbContext database, IRecordChangePublisher? changes = null) : IPartnerApplicationRepository
 {
   public Task<ActivePartnerApplication?> GetActiveForUserAsync(string userId,
     CancellationToken cancellationToken = default) =>
@@ -63,6 +63,7 @@ public sealed class PartnerApplicationRepository(EByaheDbContext database) : IPa
     {
       await database.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
+      if (changes is not null) await changes.PublishAsync(["applications"], application.CreatedBy, ct: cancellationToken);
     }
     catch (DbUpdateException exception) when (exception.InnerException is SqlException sql
       && sql.Number is 2601 or 2627 && sql.Message.Contains("UX_PartnerApplications_ActiveCreator", StringComparison.Ordinal))

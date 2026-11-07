@@ -102,6 +102,13 @@ public sealed partial class SqlServerDatabaseTests
       using var retried = await client.PostAsJsonAsync(url + "/" + action, new { remarks = "Invalid permit" });
       Assert.Equal(HttpStatusCode.OK, retried.StatusCode);
       Assert.Equal(approvals + 1, await db.PartnerApplicationApprovals.CountAsync());
+      if (action == "review")
+      {
+        // Finish this fixture's active application before the same applicant
+        // submits the next scenario (only one pending application is allowed).
+        using var finished = await client.PostAsJsonAsync(url + "/decline", new { remarks = "Fixture complete" });
+        Assert.Equal(HttpStatusCode.OK, finished.StatusCode);
+      }
     }
   }
 }

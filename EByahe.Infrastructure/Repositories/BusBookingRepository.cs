@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider clock) : IBusBookingRepository
+public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider clock, IRecordChangePublisher? changes = null) : IBusBookingRepository
 {
   public Task<BusBooking?> GetForUserAsync(Guid id, string userId, CancellationToken cancellationToken) =>
     database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.Id == id && row.CreatedBy == userId, cancellationToken);
@@ -64,6 +64,7 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
     {
       await database.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
+      if (changes is not null) await changes.PublishAsync(["bookings", "scheduled-trips"], booking.CreatedBy, trip.PartnerId, cancellationToken);
       return booking;
     }
     catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })

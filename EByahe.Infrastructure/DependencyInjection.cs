@@ -35,6 +35,11 @@ public static class DependencyInjection
     services.AddScoped<IBusBookingRepository, BusBookingRepository>();
     services.AddScoped<IAdminBusBookingRepository, AdminBusBookingRepository>();
     services.AddScoped<IPartnerPortalRepository, PartnerPortalRepository>();
+    services.AddScoped<IPartnerBusRepository, PartnerBusRepository>();
+    services.AddScoped<IPartnerTerminalRepository, PartnerTerminalRepository>();
+    services.AddScoped<IPartnerScheduledTripRepository, PartnerScheduledTripRepository>();
+    services.AddScoped<IPartnerMemberRepository, PartnerMemberRepository>();
+    services.AddSingleton<IPartnerPasswordProtector>(_ => new PartnerPasswordProtector(configuration));
     services.AddScoped<IBusCatalogRepository, BusCatalogRepository>();
     Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, TimeProvider.System);
     services.AddScoped<BusCatalogSeeder>();

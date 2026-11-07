@@ -811,6 +811,69 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.PartnerMemberRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BusinessCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RefUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartnerId", "Email")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.ToTable("PartnerMemberRequests", (string)null);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.PartnerUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -959,6 +1022,36 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.TemporaryPassword", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AvailableUntilUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("CanReveal")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ProtectedPassword")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.ToTable("TemporaryPasswords", (string)null);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.Bus", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.Partner", "Partner")
@@ -1079,6 +1172,17 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.PartnerMemberRequest", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Partner");
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.PartnerUser", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.Partner", "Partner")
@@ -1125,6 +1229,17 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Navigation("BusRoute");
 
                     b.Navigation("Partner");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.TemporaryPassword", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.PartnerMemberRequest", "Request")
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Request");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.Incoming", b =>

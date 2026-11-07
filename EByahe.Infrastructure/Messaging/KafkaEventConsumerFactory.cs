@@ -18,7 +18,7 @@ public sealed class KafkaEventConsumerFactory(IOptions<KafkaOptions> options) : 
     {
       consumer = new ConsumerBuilder<string, string>(options.ToConsumerConfig())
         .SetLogHandler((_, _) => { }).SetErrorHandler((_, _) => { }).Build();
-      try { consumer.Subscribe(options.Topic); }
+      try { consumer.Subscribe(new[] { options.Topic, options.PartnerMembersTopic }); }
       catch { consumer.Dispose(); throw; }
     }
 

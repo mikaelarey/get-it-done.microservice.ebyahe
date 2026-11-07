@@ -12,6 +12,8 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   public DbSet<BusBooking> BusBookings => Set<BusBooking>();
   public DbSet<Partner> Partners => Set<Partner>();
   public DbSet<PartnerUser> PartnerUsers => Set<PartnerUser>();
+  public DbSet<PartnerMemberRequest> PartnerMemberRequests => Set<PartnerMemberRequest>();
+  public DbSet<TemporaryPassword> TemporaryPasswords => Set<TemporaryPassword>();
   public DbSet<Location> Locations => Set<Location>();
   public DbSet<BusTerminal> BusTerminals => Set<BusTerminal>();
   public DbSet<Bus> Buses => Set<Bus>();

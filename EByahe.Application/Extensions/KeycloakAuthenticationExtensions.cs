@@ -32,6 +32,14 @@ public static class KeycloakAuthenticationExtensions
       };
       options.Events = new JwtBearerEvents
       {
+        OnMessageReceived = context =>
+        {
+          // Browser WebSocket/SSE APIs cannot set an Authorization header.
+          if (context.Request.Path == "/api/live"
+            && context.Request.Query.TryGetValue("access_token", out var token))
+            context.Token = token;
+          return Task.CompletedTask;
+        },
         OnTokenValidated = context =>
         {
           var subject = context.Principal?.FindFirst("sub")?.Value;
@@ -43,6 +51,15 @@ public static class KeycloakAuthenticationExtensions
       };
     });
     services.AddAuthorization(options => {
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadBusesPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadBuses(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteBusesPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteBuses(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.CreateMembersPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanCreateMembers(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.Policy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.HasAccess(context.User)));

@@ -81,14 +81,23 @@ public sealed class IncomingRepository(EByaheDbContext database) : IIncomingRepo
 
   public async Task FailAsync(Guid incomingId, string error, DateTime now, CancellationToken cancellationToken)
   {
+    await SetRecordState(incomingId, null, "Failed", error, now, cancellationToken);
+  }
+
+  public Task CompleteRecordAsync(Guid incomingId, Guid messageId, DateTime now, CancellationToken cancellationToken) =>
+    SetRecordState(incomingId, messageId, "Processed", null, now, cancellationToken);
+
+  private async Task SetRecordState(Guid incomingId, Guid? messageId, string status, string? error, DateTime now, CancellationToken cancellationToken)
+  {
     database.ChangeTracker.Clear();
     await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
     var receipt = await LockReceiptAsync(incomingId, cancellationToken);
     if (receipt.Status == "Processed") return;
-    receipt.Status = "Failed";
+    receipt.Status = status;
+    if (messageId is not null) { receipt.MessageId = messageId; receipt.ProcessedDateTime = now; }
     receipt.Error = error;
     receipt.RecordedDateTime = now;
-    database.IncomingLogs.Add(Log(receipt, "Failed", now, error));
+    database.IncomingLogs.Add(Log(receipt, status, now, error));
     await database.SaveChangesAsync(cancellationToken);
     await transaction.CommitAsync(cancellationToken);
   }

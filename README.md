@@ -331,3 +331,5 @@ The SQL Server test suite covers multipart binding for both partner categories,
 all saved fields/files, required fields, file signature/type/size rejection,
 image formats, filename handling, CORS, JWT rejection, creator spoofing,
 complete document snapshots, append-only enforcement, and transaction rollback.
+
+Live update endpoints, delivery rules and hosting requirements: [SignalR](docs/realtime.md).

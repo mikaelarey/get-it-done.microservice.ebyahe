@@ -37,5 +37,5 @@ public sealed class PartnerPortalController(IPartnerPortalRepository portal) : C
 
   [HttpGet("users")]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalUser>>> Users([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
-    Ok(await portal.UsersAsync(UserId, query.Page, query.PageSize, cancellationToken));
+    Ok(await portal.UsersAsync(UserId, query.Page, query.PageSize, PartnerPortalAuthorization.CanCreateMembers(User), cancellationToken));
 }

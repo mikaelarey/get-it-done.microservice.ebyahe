@@ -41,6 +41,7 @@ public sealed partial class SqlServerDatabaseTests
         {
           ["ConnectionStrings:EByaheDatabase"] = connectionString,
           ["Kafka:Enabled"] = "false",
+          ["PartnerMembers:PasswordEncryptionKey"] = Convert.ToBase64String(new byte[32]),
           ["Keycloak:Authority"] = Issuer,
           ["Keycloak:Audience"] = Audience,
           ["Cors:AllowedOrigins:0"] = "http://localhost:4204"

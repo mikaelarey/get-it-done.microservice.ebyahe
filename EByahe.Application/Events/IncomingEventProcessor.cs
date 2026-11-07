@@ -7,7 +7,8 @@ using EByahe.Domain.Repositories;
 
 namespace EByahe.Application.Events;
 
-public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventSettings settings, TimeProvider clock)
+public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventSettings settings, TimeProvider clock,
+  IPartnerMemberRepository? members = null)
 {
   private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -19,6 +20,19 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
     {
       try
       {
+        if (record.Topic == settings.PartnerMembersTopic)
+        {
+          using var json = JsonDocument.Parse(record.Payload ?? "");
+          var type = json.RootElement.GetProperty("eventType").GetString();
+          var eventId = json.RootElement.GetProperty("eventId").GetGuid();
+          if (eventId == Guid.Empty || record.Key != eventId.ToString()) throw new InvalidDataException();
+          if (type == "partner.member.provisioned")
+            await (members ?? throw new InvalidOperationException()).CompleteAsync(record, cancellationToken);
+          else if (type != "partner.member.requested") throw new InvalidDataException("Unsupported partner member event.");
+          await incoming.CompleteRecordAsync(id, eventId, Now(), cancellationToken);
+        }
+        else
+        {
         var message = ReadRegistration(record);
         await incoming.CompleteAsync(id, message.EventId, new RefUser
         {
@@ -26,6 +40,7 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
           Email = message.User.Email, Provider = message.User.Provider, Role = message.User.Role,
           CreatedAtUtc = message.OccurredAtUtc
         }, Now(), cancellationToken);
+        }
       }
       catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
       catch (Exception exception)

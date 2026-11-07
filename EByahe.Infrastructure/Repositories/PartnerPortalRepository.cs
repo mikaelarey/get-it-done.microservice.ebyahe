@@ -49,13 +49,20 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
     return Page(query, page, pageSize, cancellationToken);
   }
 
-  public Task<PartnerRecordsPage<PartnerPortalUser>> UsersAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
+  public Task<PartnerRecordsPage<PartnerPortalUser>> UsersAsync(string userId, int page, int pageSize, bool includeTemporaryPasswords, CancellationToken cancellationToken)
   {
     var ids = PartnerIds(userId);
+    var now = DateTimeOffset.UtcNow;
     var query = database.PartnerUsers.AsNoTracking().Where(row => ids.Contains(row.PartnerId))
       .OrderBy(row => row.RefUser.FirstName).ThenBy(row => row.RefUser.LastName).ThenBy(row => row.Id)
       .Select(row => new PartnerPortalUser(row.Id, (row.RefUser.FirstName + " " + row.RefUser.LastName).Trim(),
-        row.RefUser.Email, row.Partner.DisplayName, row.IsActive));
+        row.RefUser.Email, row.Partner.DisplayName, row.IsActive,
+        includeTemporaryPasswords ? database.TemporaryPasswords
+          .Where(password => password.CanReveal && password.AvailableUntilUtc > now &&
+            password.Request.Status == "Completed" && password.Request.CreatedBy == userId &&
+            password.Request.PartnerId == row.PartnerId && password.Request.RefUserId == row.RefUserId)
+          .OrderByDescending(password => password.CreatedAtUtc).ThenBy(password => password.Id)
+          .Select(password => (Guid?)password.RequestId).FirstOrDefault() : null));
     return Page(query, page, pageSize, cancellationToken);
   }
 

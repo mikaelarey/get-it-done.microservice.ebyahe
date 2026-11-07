@@ -26,9 +26,10 @@ public sealed partial class SqlServerDatabaseTests
   {
     var broker = Environment.GetEnvironmentVariable("EBYAHE_TEST_KAFKA")!;
     var topic = "ebyahe-tests-" + Guid.NewGuid().ToString("N");
+    var memberTopic = topic + "-members";
     var group = topic + "-users";
     using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = broker, BrokerAddressFamily = BrokerAddressFamily.V4 }).Build();
-    await admin.CreateTopicsAsync([new TopicSpecification { Name = topic, NumPartitions = 1, ReplicationFactor = 1 }]);
+    await admin.CreateTopicsAsync(new[] { topic, memberTopic }.Select(name => new TopicSpecification { Name = name, NumPartitions = 1, ReplicationFactor = 1 }));
     try
     {
       var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -36,6 +37,7 @@ public sealed partial class SqlServerDatabaseTests
         ["ConnectionStrings:EByaheDatabase"] = ConnectionString,
         ["Kafka:Enabled"] = "true", ["Kafka:BootstrapServers"] = broker,
         ["Kafka:Topic"] = topic, ["Kafka:ConsumerGroup"] = group,
+        ["Kafka:PartnerMembersTopic"] = memberTopic,
         ["Kafka:BrokerAddressFamily"] = "V4", ["Kafka:SecurityProtocol"] = "Plaintext", ["Kafka:RetryDelaySeconds"] = "1"
       }).Build();
       await using var provider = new ServiceCollection().AddLogging()
@@ -78,6 +80,6 @@ public sealed partial class SqlServerDatabaseTests
         await worker.StopAsync(stopping.Token);
       }
     }
-    finally { await admin.DeleteTopicsAsync([topic]); }
+    finally { await admin.DeleteTopicsAsync([topic, memberTopic]); }
   }
 }

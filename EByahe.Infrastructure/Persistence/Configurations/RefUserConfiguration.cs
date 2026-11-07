@@ -10,7 +10,9 @@ public sealed class RefUserConfiguration : IEntityTypeConfiguration<RefUser>
   {
     builder.ToTable("RefUsers", table => table.HasCheckConstraint("CK_RefUsers_Role", "[Role] IN ('Administrator', 'Normal')"));
     builder.HasKey(user => user.Id).HasName("PK_RefUsers");
-    builder.Property(user => user.Id).HasMaxLength(RefUser.IdMaxLength)
+    builder.Property(user => user.Id).ValueGeneratedNever();
+    builder.HasIndex(user => user.ExternalUserId).IsUnique().HasDatabaseName("UX_RefUsers_ExternalUserId");
+    builder.Property(user => user.ExternalUserId).HasMaxLength(RefUser.ExternalUserIdMaxLength)
       .UseCollation("Latin1_General_100_BIN2").ValueGeneratedNever();
     builder.Property(user => user.FirstName).HasMaxLength(RefUser.NameMaxLength).IsRequired();
     builder.Property(user => user.LastName).HasMaxLength(RefUser.NameMaxLength).IsRequired();

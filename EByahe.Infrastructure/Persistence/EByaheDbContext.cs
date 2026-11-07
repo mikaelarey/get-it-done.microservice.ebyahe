@@ -4,10 +4,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Infrastructure.Persistence;
 
-public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> options)
+public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> options,
+  Microsoft.Extensions.Options.IOptions<EByahe.Infrastructure.Messaging.KafkaOptions>? kafka = null)
   : DbContext(options), IUnitOfWork
 {
   public DbSet<RefUser> RefUsers => Set<RefUser>();
+  public DbSet<BusBooking> BusBookings => Set<BusBooking>();
+  public DbSet<Partner> Partners => Set<Partner>();
+  public DbSet<PartnerUser> PartnerUsers => Set<PartnerUser>();
+  public DbSet<Location> Locations => Set<Location>();
+  public DbSet<BusTerminal> BusTerminals => Set<BusTerminal>();
+  public DbSet<Bus> Buses => Set<Bus>();
+  public DbSet<BusRoute> BusRoutes => Set<BusRoute>();
+  public DbSet<ScheduledTrip> ScheduledTrips => Set<ScheduledTrip>();
   public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
   public DbSet<Outgoing> Outgoing => Set<Outgoing>();
   public DbSet<Incoming> Incoming => Set<Incoming>();
@@ -28,8 +37,10 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
       ? Database.BeginTransaction(System.Data.IsolationLevel.Serializable) : null;
     foreach (var id in ids)
       PreparePartnerHistory(id, PartnerApplications.AsNoTracking().Include(row => row.Documents).SingleOrDefault(row => row.Id == id));
-    var result = base.SaveChanges(acceptAllChangesOnSuccess);
-    transaction?.Commit();
+    var events = PrepareActivityEvents();
+    int result;
+    try { result = base.SaveChanges(acceptAllChangesOnSuccess); transaction?.Commit(); }
+    catch { DetachActivityEvents(events); throw; }
     if (acceptAllChangesOnSuccess) pendingPartnerHistories.Clear();
     return result;
   }
@@ -47,8 +58,14 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
     foreach (var id in ids)
       PreparePartnerHistory(id, await PartnerApplications.AsNoTracking().Include(row => row.Documents)
         .SingleOrDefaultAsync(row => row.Id == id, cancellationToken));
-    var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-    if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+    var events = PrepareActivityEvents();
+    int result;
+    try
+    {
+      result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+      if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+    }
+    catch { DetachActivityEvents(events); throw; }
     if (acceptAllChangesOnSuccess) pendingPartnerHistories.Clear();
     return result;
   }

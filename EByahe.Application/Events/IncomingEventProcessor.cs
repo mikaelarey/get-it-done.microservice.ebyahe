@@ -22,7 +22,7 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
         var message = ReadRegistration(record);
         await incoming.CompleteAsync(id, message.EventId, new RefUser
         {
-          Id = message.User.Id, FirstName = message.User.FirstName, LastName = message.User.LastName,
+          ExternalUserId = message.User.Id, FirstName = message.User.FirstName, LastName = message.User.LastName,
           Email = message.User.Email, Provider = message.User.Provider, Role = message.User.Role,
           CreatedAtUtc = message.OccurredAtUtc
         }, Now(), cancellationToken);
@@ -59,7 +59,7 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
       || message.SchemaVersion != 1 || message.OccurredAtUtc == default || message.User is null)
       throw new InvalidDataException("Unsupported event envelope.");
     var user = message.User;
-    if (!Valid(user.Id, RefUser.IdMaxLength) || !Valid(user.FirstName, RefUser.NameMaxLength)
+    if (!Valid(user.Id, RefUser.ExternalUserIdMaxLength) || !Valid(user.FirstName, RefUser.NameMaxLength)
       || !Valid(user.LastName, RefUser.NameMaxLength) || !Valid(user.Email, RefUser.EmailMaxLength)
       || !MailAddress.TryCreate(user.Email, out _) || !Valid(user.Provider, RefUser.ProviderMaxLength)
       || user.Role is not (RefUser.AdministratorRole or RefUser.NormalRole)

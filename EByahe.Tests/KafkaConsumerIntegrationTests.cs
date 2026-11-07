@@ -27,7 +27,7 @@ public sealed partial class SqlServerDatabaseTests
     var broker = Environment.GetEnvironmentVariable("EBYAHE_TEST_KAFKA")!;
     var topic = "ebyahe-tests-" + Guid.NewGuid().ToString("N");
     var group = topic + "-users";
-    using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = broker }).Build();
+    using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = broker, BrokerAddressFamily = BrokerAddressFamily.V4 }).Build();
     await admin.CreateTopicsAsync([new TopicSpecification { Name = topic, NumPartitions = 1, ReplicationFactor = 1 }]);
     try
     {
@@ -36,15 +36,15 @@ public sealed partial class SqlServerDatabaseTests
         ["ConnectionStrings:EByaheDatabase"] = ConnectionString,
         ["Kafka:Enabled"] = "true", ["Kafka:BootstrapServers"] = broker,
         ["Kafka:Topic"] = topic, ["Kafka:ConsumerGroup"] = group,
-        ["Kafka:SecurityProtocol"] = "Plaintext", ["Kafka:RetryDelaySeconds"] = "1"
+        ["Kafka:BrokerAddressFamily"] = "V4", ["Kafka:SecurityProtocol"] = "Plaintext", ["Kafka:RetryDelaySeconds"] = "1"
       }).Build();
       await using var provider = new ServiceCollection().AddLogging()
         .AddInfrastructure(configuration).AddApplication().BuildServiceProvider();
-      var worker = provider.GetServices<IHostedService>().Single();
+      var worker = provider.GetServices<IHostedService>().OfType<EByahe.Application.Events.IncomingEventWorker>().Single();
       await worker.StartAsync(CancellationToken.None);
       try
       {
-        using var producer = new ProducerBuilder<string, string>(new ProducerConfig { BootstrapServers = broker }).Build();
+        using var producer = new ProducerBuilder<string, string>(new ProducerConfig { BootstrapServers = broker, BrokerAddressFamily = BrokerAddressFamily.V4 }).Build();
         var record = Registration();
         var delivery = await producer.ProduceAsync(topic, new Message<string, string> { Key = record.Key!, Value = record.Payload! });
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(40));
@@ -62,12 +62,12 @@ public sealed partial class SqlServerDatabaseTests
         Assert.Equal(delivery.Offset.Value, receipt.Offset);
         Assert.Equal(record.Payload, receipt.Payload);
         Assert.Equal("Processed", receipt.Status);
-        Assert.Equal("account-user", (await check.RefUsers.SingleAsync()).Id);
+        Assert.Equal("account-user", (await check.RefUsers.SingleAsync()).ExternalUserId);
         Assert.Equal(4, await check.IncomingLogs.CountAsync());
 
         using var observer = new ConsumerBuilder<string, string>(new ConsumerConfig
         {
-          BootstrapServers = broker, GroupId = group, EnableAutoCommit = false
+          BootstrapServers = broker, BrokerAddressFamily = BrokerAddressFamily.V4, GroupId = group, EnableAutoCommit = false
         }).Build();
         var committed = observer.Committed([new TopicPartition(topic, delivery.Partition)], TimeSpan.FromSeconds(10));
         Assert.Equal(delivery.Offset.Value + 1, committed.Single().Offset.Value);

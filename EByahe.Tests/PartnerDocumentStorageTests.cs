@@ -31,6 +31,10 @@ public sealed class PartnerDocumentStorageTests
 
   private sealed class Repository : IPartnerApplicationRepository
   {
+    public EByahe.Domain.DataModels.ActivePartnerApplication? Active { get; init; }
+    public bool ConflictOnSave { get; init; }
+    public Task<EByahe.Domain.DataModels.ActivePartnerApplication?> GetActiveForUserAsync(string userId,
+      CancellationToken cancellationToken = default) => Task.FromResult(Active);
     public Task<(IReadOnlyList<PartnerApplication> Items, int TotalCount)> ListForUserAsync(string userId, int page,
       int pageSize, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PartnerApplication?> GetForUserAsync(Guid id, string userId, CancellationToken cancellationToken = default) =>
@@ -41,6 +45,7 @@ public sealed class PartnerDocumentStorageTests
     public bool CannotCheckCommit { get; init; }
     public Task AddAsync(PartnerApplication application, CancellationToken cancellationToken = default)
     {
+      if (ConflictOnSave) throw new ActivePartnerApplicationException(new(Guid.NewGuid(), "APP-OTHER", "Submitted"));
       if (FailSave) throw new IOException("Simulated database failure.");
       Application = application;
       return Task.CompletedTask;
@@ -51,6 +56,29 @@ public sealed class PartnerDocumentStorageTests
 
   private static PartnerApplicationService Service(Repository repository, MemoryDocumentStorage storage) =>
     new(repository, storage, TimeProvider.System, NullLogger<PartnerApplicationService>.Instance);
+
+  [Theory]
+  [InlineData("Submitted")]
+  [InlineData("UnderReview")]
+  public async Task ActiveApplicationIsRejectedBeforeAnyUploads(string status)
+  {
+    var repository = new Repository { Active = new(Guid.NewGuid(), "APP-ACTIVE", status) };
+    var storage = new MemoryDocumentStorage();
+    var error = await Assert.ThrowsAsync<ActivePartnerApplicationException>(() => Service(repository, storage).SubmitAsync(Request(), "user"));
+    Assert.Equal(repository.Active, error.ActiveApplication);
+    Assert.Equal(0, storage.PutCalls);
+    Assert.Null(repository.Application);
+  }
+
+  [Fact]
+  public async Task SubmissionRaceCleansTheLosingRequestsUploads()
+  {
+    var repository = new Repository { ConflictOnSave = true };
+    var storage = new MemoryDocumentStorage();
+    await Assert.ThrowsAsync<ActivePartnerApplicationException>(() => Service(repository, storage).SubmitAsync(Request(), "user"));
+    Assert.Equal(5, storage.PutCalls);
+    Assert.Empty(storage.Objects);
+  }
 
   [Fact]
   public async Task SavesFilesInStorageAndOnlyReferencesInTheAggregate()

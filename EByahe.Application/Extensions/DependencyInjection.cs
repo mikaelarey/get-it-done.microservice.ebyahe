@@ -12,7 +12,10 @@ public static class DependencyInjection
     services.AddSingleton(TimeProvider.System);
     services.AddScoped<IncomingEventProcessor>();
     services.AddHostedService<IncomingEventWorker>();
+    services.AddScoped<OutgoingEventDispatcher>();
+    services.AddHostedService<OutgoingEventWorker>();
     services.AddScoped<IPartnerApplicationService, PartnerApplicationService>();
+    services.AddScoped<IBusBookingService, BusBookingService>();
     services.AddExceptionHandler<ApiExceptionHandler>();
     services.AddProblemDetails();
     return services;

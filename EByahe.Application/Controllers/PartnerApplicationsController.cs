@@ -14,6 +14,14 @@ public sealed class PartnerApplicationsController(IPartnerApplicationService app
 {
   public const long MaxRequestSize = 52 * 1024 * 1024;
 
+  [HttpGet("eligibility")]
+  [ProducesResponseType<EByahe.Domain.DataModels.PartnerApplicationEligibility>(StatusCodes.Status200OK)]
+  public async Task<ActionResult<EByahe.Domain.DataModels.PartnerApplicationEligibility>> Eligibility(CancellationToken cancellationToken)
+  {
+    Response.Headers.CacheControl = "private, no-store";
+    return Ok(await applications.EligibilityAsync(User.FindFirst("sub")!.Value, cancellationToken));
+  }
+
   [HttpGet]
   [ProducesResponseType<CustomerPartnerApplicationPage>(StatusCodes.Status200OK)]
   public async Task<ActionResult<CustomerPartnerApplicationPage>> List(
@@ -52,6 +60,7 @@ public sealed class PartnerApplicationsController(IPartnerApplicationService app
   [ProducesResponseType<PartnerApplicationResponse>(StatusCodes.Status201Created)]
   [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
   [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+  [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
   [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
   [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
   [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]

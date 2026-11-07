@@ -10,6 +10,17 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
   public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
   {
     if (exception is OperationCanceledException && context.RequestAborted.IsCancellationRequested) return false;
+    if (exception is ActivePartnerApplicationException active)
+    {
+      context.Response.StatusCode = StatusCodes.Status409Conflict;
+      context.Response.Headers.CacheControl = "private, no-store";
+      await context.Response.WriteAsJsonAsync(new ProblemDetails
+      {
+        Status = StatusCodes.Status409Conflict, Title = active.Message,
+        Extensions = { ["code"] = "active_partner_application", ["activeApplication"] = active.ActiveApplication }
+      }, cancellationToken);
+      return true;
+    }
     if (exception is DocumentStorageException)
     {
       context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;

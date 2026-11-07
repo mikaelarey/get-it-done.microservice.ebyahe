@@ -78,17 +78,19 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
   {
     await using var database = CreateDatabase();
     await database.Database.ExecuteSqlRawAsync("""
-      INSERT INTO [RefUsers] ([Id], [FirstName], [LastName], [Email], [CreatedAtUtc])
-      VALUES (N'user-1', N'Maria', N'Santos', N'Maria@example.com', SYSDATETIMEOFFSET());
+      INSERT INTO [RefUsers] ([Id], [ExternalUserId], [FirstName], [LastName], [Email], [CreatedAtUtc])
+      VALUES (NEWID(), N'user-1', N'Maria', N'Santos', N'Maria@example.com', SYSDATETIMEOFFSET());
       """);
     var user = await database.RefUsers.SingleAsync();
     Assert.Equal("Get It Done", user.Provider);
     Assert.Equal("Normal", user.Role);
-    Assert.Null(await database.RefUsers.SingleOrDefaultAsync(row => row.Id == "USER-1"));
+    Assert.NotEqual(Guid.Empty, user.Id);
+    Assert.Equal("user-1", user.ExternalUserId);
+    Assert.Null(await database.RefUsers.SingleOrDefaultAsync(row => row.ExternalUserId == "USER-1"));
 
     database.RefUsers.Add(new RefUser
     {
-      Id = "user-2", FirstName = "Juan", LastName = "Cruz",
+      ExternalUserId = "user-2", FirstName = "Juan", LastName = "Cruz",
       Email = "MARIA@EXAMPLE.COM", CreatedAtUtc = DateTimeOffset.UtcNow
     });
     var duplicate = await Assert.ThrowsAsync<DbUpdateException>(() => database.SaveChangesAsync());
@@ -96,7 +98,7 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
     database.ChangeTracker.Clear();
 
     var invalidRole = await Assert.ThrowsAsync<SqlException>(() => database.Database.ExecuteSqlRawAsync(
-      "UPDATE [RefUsers] SET [Role] = N'normal' WHERE [Id] = N'user-1'"));
+      "UPDATE [RefUsers] SET [Role] = N'normal' WHERE [ExternalUserId] = N'user-1'"));
     Assert.Equal(547, invalidRole.Number);
   }
 

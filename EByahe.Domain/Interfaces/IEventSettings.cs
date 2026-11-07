@@ -7,4 +7,6 @@ public interface IEventSettings
   string Topic { get; }
   string ConsumerGroup { get; }
   int RetryDelaySeconds { get; }
+  int PollIntervalMilliseconds => 1000;
+  int LeaseSeconds => 120;
 }

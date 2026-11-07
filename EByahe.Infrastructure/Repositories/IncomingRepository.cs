@@ -65,7 +65,7 @@ public sealed class IncomingRepository(EByaheDbContext database) : IIncomingRepo
     // Registration is insert-only. Replays must not overwrite later profile changes.
     // Range locking also serializes different Kafka records for the same user ID.
     var existing = await database.RefUsers.FromSqlInterpolated(
-      $"SELECT * FROM [RefUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {user.Id}")
+      $"SELECT * FROM [RefUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [ExternalUserId] = {user.ExternalUserId}")
       .SingleOrDefaultAsync(cancellationToken);
     if (existing is null) database.RefUsers.Add(user);
     receipt.MessageId = messageId;

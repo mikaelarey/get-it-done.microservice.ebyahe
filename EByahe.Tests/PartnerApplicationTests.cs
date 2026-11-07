@@ -66,11 +66,13 @@ public sealed partial class SqlServerDatabaseTests
     }
 
     public string Token(string? subject = Subject, string audience = Audience, string issuer = Issuer,
-      bool expired = false, bool trusted = true, string type = "Bearer")
+      bool expired = false, bool trusted = true, string type = "Bearer", object? resourceAccess = null, object? realmAccess = null)
     {
       using var other = RSA.Create(2048);
       var claims = new List<Claim> { new("typ", type) };
       if (subject is not null) claims.Add(new Claim("sub", subject));
+      if (resourceAccess is not null) claims.Add(new Claim("resource_access", JsonSerializer.Serialize(resourceAccess), JsonClaimValueTypes.Json));
+      if (realmAccess is not null) claims.Add(new Claim("realm_access", JsonSerializer.Serialize(realmAccess), JsonClaimValueTypes.Json));
       var key = new RsaSecurityKey(trusted ? signingKey : other) { KeyId = "tests" };
       var token = new JwtSecurityToken(issuer, audience, claims,
         DateTime.UtcNow.AddHours(-1), expired ? DateTime.UtcNow.AddMinutes(-5) : DateTime.UtcNow.AddMinutes(5),
@@ -107,6 +109,8 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Empty(await database.PartnerApplications.ToListAsync());
     Assert.Empty(await database.PartnerApplicationHistories.ToListAsync());
     Assert.Empty(await database.PartnerApplicationApprovals.ToListAsync());
+    Assert.Empty(await database.OutboxMessages.ToListAsync());
+    Assert.Empty(await database.Outgoing.ToListAsync());
   }
 
   [SqlServerFact]
@@ -283,6 +287,8 @@ public sealed partial class SqlServerDatabaseTests
     using var client = factory.AuthenticatedClient();
     foreach (var (category, entity) in new[] { ("hotel", "sole-proprietorship"), ("bus-operator", "corporation") })
     {
+      var subject = $"{PartnerApiFactory.Subject}-{category}";
+      client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: subject));
       using var form = ApplicationForm(category, entity);
       using var response = await client.PostAsync("/api/partner-applications", form);
       Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -307,12 +313,12 @@ public sealed partial class SqlServerDatabaseTests
       Assert.Equal("weekly", application.SettlementFrequency);
       Assert.Equal(receipt.SubmittedAtUtc, application.SubmittedAtUtc);
       Assert.Equal(receipt.TrackingId, application.TrackingId);
-      Assert.Equal(PartnerApiFactory.Subject, application.CreatedBy);
+      Assert.Equal(subject, application.CreatedBy);
       var history = await database.PartnerApplicationHistories.SingleAsync(row => row.PartnerApplicationId == application.Id);
       Assert.Null(history.PreviousValue);
       Assert.Equal("Submitted", history.Status);
       using var snapshot = JsonDocument.Parse(history.CurrentValue);
-      Assert.Equal(PartnerApiFactory.Subject, snapshot.RootElement.GetProperty("CreatedBy").GetString());
+      Assert.Equal(subject, snapshot.RootElement.GetProperty("CreatedBy").GetString());
       Assert.Equal(5, snapshot.RootElement.GetProperty("Documents").GetArrayLength());
       Assert.All(snapshot.RootElement.GetProperty("Documents").EnumerateArray(), document =>
       {
@@ -323,7 +329,7 @@ public sealed partial class SqlServerDatabaseTests
       var approval = await database.PartnerApplicationApprovals.SingleAsync(row => row.PartnerApplicationId == application.Id);
       Assert.Equal("Pending", approval.Status);
       Assert.Null(approval.PreviousStatus);
-      Assert.Equal(PartnerApiFactory.Subject, approval.ChangedBy);
+      Assert.Equal(subject, approval.ChangedBy);
       Assert.Equal(receipt.SubmittedAtUtc, approval.DateTimeCreated);
       Assert.Equal(5, application.Documents.Count);
       Assert.Equal(new[] { "accreditation", "bankAccountProof", "bir", "permit", "registration" },
@@ -392,6 +398,7 @@ public sealed partial class SqlServerDatabaseTests
     using var client = factory.AuthenticatedClient();
     foreach (var item in PartnerUploadTestFiles.Allowed())
     {
+      client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: Guid.NewGuid().ToString()));
       var name = "../../" + (string)item[0]; var type = (string)item[1]; var bytes = (byte[])item[2];
       using var form = ApplicationForm(invalidFile: "bankAccountProof", fileName: name, content: bytes, contentType: type);
       using var response = await client.PostAsync("/api/partner-applications", form);

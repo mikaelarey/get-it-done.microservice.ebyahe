@@ -42,7 +42,18 @@ public static class KeycloakAuthenticationExtensions
         }
       };
     });
-    services.AddAuthorization();
+    services.AddAuthorization(options => {
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.Policy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.HasAccess(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.BookingReadAuthorization.Policy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.BookingReadAuthorization.HasAccess(context.User)));
+      options.AddPolicy(
+      EByahe.Application.Authorization.PartnerApplicationReviewAuthorization.Policy,
+      policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+        EByahe.Application.Authorization.PartnerApplicationReviewAuthorization.HasAccess(context.User)));
+    });
     return services;
   }
 }

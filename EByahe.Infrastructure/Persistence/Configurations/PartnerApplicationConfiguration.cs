@@ -22,6 +22,8 @@ public sealed class PartnerApplicationConfiguration : IEntityTypeConfiguration<P
     builder.Property(row => row.Status).HasMaxLength(32).IsUnicode(false).HasDefaultValue("Submitted").IsRequired();
     builder.Property(row => row.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2");
     builder.HasIndex(row => new { row.CreatedBy, row.SubmittedAtUtc });
+    builder.HasIndex(row => row.CreatedBy).IsUnique().HasDatabaseName("UX_PartnerApplications_ActiveCreator")
+      .HasFilter("[CreatedBy] IS NOT NULL AND [Status] IN ('Submitted', 'UnderReview')");
     builder.Property(row => row.BusinessCategory).HasMaxLength(32).IsUnicode(false).IsRequired();
     builder.Property(row => row.BusinessName).HasMaxLength(255).IsRequired();
     builder.Property(row => row.TradeName).HasMaxLength(255).IsRequired();

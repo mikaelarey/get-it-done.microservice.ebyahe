@@ -23,7 +23,7 @@ The SQL Server database is `Getitdone.Ebyahe`. It contains:
 
 | Table | Purpose |
 | --- | --- |
-| `RefUsers` | Account user reference: `Id`, `FirstName`, `LastName`, `Email`, `Provider`, `Role`, `CreatedAtUtc` |
+| `RefUsers` | Local GUID `Id`, Account `ExternalUserId`, name, email, provider, role and creation time |
 | `OutboxMessages` | Mutable Kafka delivery state, retry schedule, and delivery leases |
 | `Outgoing` | Append-only outgoing Kafka status history |
 | `Incoming` | One original envelope and current processing state per consumer group/topic/partition/offset |
@@ -32,11 +32,34 @@ The SQL Server database is `Getitdone.Ebyahe`. It contains:
 | `PartnerApplicationDocuments` | Document metadata, checksum, and private object-storage references |
 | `PartnerApplicationHistories` | Immutable before/after JSON, including versioned document references |
 | `PartnerApplicationApprovals` | Approval status transitions, actor, remarks, and UTC timestamp |
+| `BusBookings` | Authenticated bus booking submissions, server references, validated snapshots and retry keys |
+| `Partners`, `Locations`, `BusTerminals`, `Buses` | Approved partner catalog, search locations, terminals and fleet |
+| `PartnerUsers` | GUID links between partners and local user references, active status and UTC creation time |
+| `BusRoutes`, `ScheduledTrips` | Directional routes and dated departures with database fares |
 
-`RefUsers` matches Account's `Users` column types, lengths, nullability,
-collations, defaults, unique email index, and role constraint. IDs and roles
-are case-sensitive; email uniqueness is case-insensitive. Account's contact
-and history tables are separate tables and are not replicated here.
+See [bus-catalog.md](docs/bus-catalog.md) for public search endpoints, development
+sample data and the future partner management workflow.
+See [partner-users.md](docs/partner-users.md) for partner membership relationships
+and how the approval workflow should create the first membership.
+See [application-review.md](docs/application-review.md) for the reviewer-only
+application list API used by the admin Applications page.
+See [partner-directory.md](docs/partner-directory.md) for the database-backed
+admin Partners Lists API, filters, counts and legacy record handling.
+
+All application primary keys and their foreign keys use SQL Server
+`uniqueidentifier` / .NET `Guid`. `RefUsers.Id` is a local GUID; its unique,
+case-sensitive `ExternalUserId` preserves the original Account identity and is
+used when processing Kafka events. Account subjects in ownership/audit fields
+remain external strings. `RefUsers` otherwise preserves Account's profile column
+types, lengths, nullability, collations, defaults, unique email index and role
+constraint. Roles are case-sensitive; email uniqueness is case-insensitive.
+Account's contact and history tables are not replicated here. EF's internal
+`__EFMigrationsHistory.MigrationId` remains framework-managed text.
+
+The `ConvertApplicationKeysToGuids` migration patches existing catalog keys,
+relationships and saved booking trip IDs transactionally without resetting
+reservations. See [GUID key upgrade](docs/bus-catalog.md#guid-key-upgrade) before
+upgrading an existing database.
 
 The outgoing table schemas follow Account. Incoming storage separates each
 envelope from its status history, avoiding repeated payloads. The context
@@ -60,6 +83,21 @@ dotnet run --project EByahe.Application --launch-profile https
 For deployments, set `ConnectionStrings__EByaheDatabase`. Startup applies pending
 migrations before serving requests. Set `Database__MigrateOnStartup=false` when
 migrations are applied separately; migration failures stop startup.
+
+## Bus bookings
+
+Booking creation and partner application submission queue `booking.created` /
+`partner-application.submitted` activities in the same transaction as their
+records and seat reservations. `OutboxMessages` and append-only `Outgoing`
+track delivery to `Kafka:NotificationTopic` (default
+`get-it-done.notifications.v1`) with leases and retries. Failed saves and
+replayed bookings do not create additional events. Payloads contain identifiers,
+small summaries and protected details paths; they exclude payment, passenger,
+banking and document contents. Enable Kafka and import the new topic to deliver;
+disabled publishing retains pending rows.
+
+For the authenticated booking intake endpoint, JSON contract, validation and
+frontend behavior, see [Bus booking submissions](docs/bus-bookings.md).
 
 ## Account registration consumer
 

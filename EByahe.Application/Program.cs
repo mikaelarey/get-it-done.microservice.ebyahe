@@ -26,6 +26,11 @@ if (builder.Configuration.GetValue<bool>("MigratePartnerFilesOnly"))
   return;
 }
 await app.Services.InitializeInfrastructureAsync(app.Lifetime.ApplicationStopping);
+if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("Catalog:SeedDemoData"))
+{
+  await using var scope = app.Services.CreateAsyncScope();
+  await scope.ServiceProvider.GetRequiredService<BusCatalogSeeder>().SeedAsync(app.Lifetime.ApplicationStopping);
+}
 
 if (app.Environment.IsDevelopment())
 {

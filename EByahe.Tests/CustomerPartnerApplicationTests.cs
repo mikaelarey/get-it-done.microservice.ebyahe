@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using EByahe.Application.Dtos.Responses;
+using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Tests;
 
@@ -77,6 +78,14 @@ public sealed partial class SqlServerDatabaseTests
       using var created = await client.PostAsync("/api/partner-applications", form);
       Assert.Equal(HttpStatusCode.Created, created.StatusCode);
       ownIds.Add((await created.Content.ReadFromJsonAsync<PartnerApplicationResponse>())!.Id);
+      // A customer can accumulate historical applications after previous decisions.
+      if (index == 0)
+      {
+        await using var database = CreateDatabase();
+        var historical = await database.PartnerApplications.FindAsync(ownIds[0]);
+        historical!.Status = "Rejected";
+        await database.SaveChangesAsync();
+      }
     }
     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "another-customer"));
     using var otherForm = ApplicationForm();

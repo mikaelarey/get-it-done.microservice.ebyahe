@@ -51,7 +51,7 @@ public sealed partial class SqlServerDatabaseTests
     var incoming = await database.Incoming.SingleAsync();
     var user = await database.RefUsers.SingleAsync();
     Assert.Equal(1, consumer.Commits);
-    Assert.Equal("account-user", user.Id);
+    Assert.Equal("account-user", user.ExternalUserId);
     Assert.Equal(new DateTimeOffset(2026, 10, 31, 0, 0, 0, TimeSpan.Zero), user.CreatedAtUtc);
     Assert.NotNull(incoming.MessageId);
     Assert.NotNull(incoming.ProcessedDateTime);
@@ -84,7 +84,7 @@ public sealed partial class SqlServerDatabaseTests
     await using var database = CreateDatabase();
     database.RefUsers.Add(new RefUser
     {
-      Id = "other-user", FirstName = "Other", LastName = "User", Email = "user@example.com",
+      ExternalUserId = "other-user", FirstName = "Other", LastName = "User", Email = "user@example.com",
       CreatedAtUtc = DateTimeOffset.UtcNow
     });
     await database.SaveChangesAsync();
@@ -95,12 +95,12 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Null((await database.Incoming.SingleAsync()).ProcessedDateTime);
     Assert.Equal(0, await database.IncomingLogs.CountAsync(row => row.Status == "Processed"));
     Assert.Equal(0, consumer.Commits);
-    Assert.Equal("other-user", (await database.RefUsers.SingleAsync()).Id);
+    Assert.Equal("other-user", (await database.RefUsers.SingleAsync()).ExternalUserId);
 
     await database.RefUsers.ExecuteDeleteAsync();
     await ProcessAsync(consumer, record);
     database.ChangeTracker.Clear();
-    Assert.Equal("account-user", (await database.RefUsers.SingleAsync()).Id);
+    Assert.Equal("account-user", (await database.RefUsers.SingleAsync()).ExternalUserId);
     Assert.Equal("Processed", (await database.Incoming.SingleAsync()).Status);
     Assert.Equal(2, (await database.Incoming.SingleAsync()).AttemptCount);
     Assert.Equal(1, consumer.Commits);
@@ -132,7 +132,7 @@ public sealed partial class SqlServerDatabaseTests
   {
     await using var database = CreateDatabase();
     var migrator = database.GetService<IMigrator>();
-    await migrator.MigrateAsync("20261031041828_InitialRefUsersAndKafkaTables");
+    await ResetToMigrationAsync(database, "20261031041828_InitialRefUsersAndKafkaTables");
     await database.Database.ExecuteSqlRawAsync("""
       DECLARE @delivery uniqueidentifier = NEWID();
       INSERT INTO [Incoming]

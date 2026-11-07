@@ -22,6 +22,205 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("EByahe.Domain.Models.Bus", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BusClass")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FleetNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PlateNumber")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("SeatCapacity")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlateNumber")
+                        .IsUnique()
+                        .HasFilter("[PlateNumber] IS NOT NULL");
+
+                    b.HasIndex("PartnerId", "FleetNumber")
+                        .IsUnique();
+
+                    b.ToTable("Buses", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Buses_Capacity", "[SeatCapacity] BETWEEN 1 AND 100");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.BusBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(35)");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ReservedSeats")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid?>("ScheduledTripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Reference")
+                        .IsUnique();
+
+                    b.HasIndex("ScheduledTripId");
+
+                    b.HasIndex("CreatedBy", "CreatedAtUtc");
+
+                    b.HasIndex("CreatedBy", "RequestId")
+                        .IsUnique();
+
+                    b.ToTable("BusBookings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BusBookings_DetailsJson", "ISJSON([DetailsJson]) = 1");
+
+                            t.HasCheckConstraint("CK_BusBookings_ReservedSeats", "[ReservedSeats] BETWEEN 0 AND 20 AND ([ReservedSeats] = 0 OR [ScheduledTripId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_BusBookings_Status", "[Status] = 'Submitted'");
+
+                            t.HasCheckConstraint("CK_BusBookings_Total", "[Total] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.BusRoute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DestinationTerminalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OriginTerminalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DestinationTerminalId", "PartnerId");
+
+                    b.HasIndex("OriginTerminalId", "PartnerId");
+
+                    b.HasIndex("PartnerId", "OriginTerminalId", "DestinationTerminalId")
+                        .IsUnique();
+
+                    b.ToTable("BusRoutes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BusRoutes_DifferentTerminals", "[OriginTerminalId] <> [DestinationTerminalId]");
+
+                            t.HasCheckConstraint("CK_BusRoutes_Duration", "[DurationMinutes] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.BusTerminal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("PartnerId", "LocationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("BusTerminals", (string)null);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.Incoming", b =>
                 {
                     b.Property<Guid>("Id")
@@ -129,6 +328,40 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_IncomingLogs_Status", "[Status] IN ('Received', 'Processing', 'Processed', 'Failed', 'Acknowledged', 'AcknowledgementFailed')");
                         });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Location", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Locations", (string)null);
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.OutboxMessage", b =>
@@ -263,6 +496,52 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.Partner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OwnerUserId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<Guid?>("PartnerApplicationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("PartnerApplicationId")
+                        .IsUnique()
+                        .HasFilter("[PartnerApplicationId] IS NOT NULL");
+
+                    b.ToTable("Partners", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Partners_Status", "[Status] IN ('Approved', 'Suspended')");
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.PartnerApplication", b =>
                 {
                     b.Property<Guid>("Id")
@@ -359,6 +638,11 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PartnerApplications_ActiveCreator")
+                        .HasFilter("[CreatedBy] IS NOT NULL AND [Status] IN ('Submitted', 'UnderReview')");
 
                     b.HasIndex("TrackingId")
                         .IsUnique();
@@ -527,12 +811,41 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.PartnerUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RefUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartnerId", "RefUserId")
+                        .IsUnique();
+
+                    b.HasIndex("RefUserId", "IsActive");
+
+                    b.ToTable("PartnerUsers", (string)null);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.RefUser", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .UseCollation("Latin1_General_100_BIN2");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -542,6 +855,12 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasMaxLength(254)
                         .HasColumnType("nvarchar(254)")
                         .UseCollation("Latin1_General_100_CI_AS_SC");
+
+                    b.Property<string>("ExternalUserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -575,10 +894,136 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UX_RefUsers_Email");
 
+                    b.HasIndex("ExternalUserId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_RefUsers_ExternalUserId");
+
                     b.ToTable("RefUsers", null, t =>
                         {
                             t.HasCheckConstraint("CK_RefUsers_Role", "[Role] IN ('Administrator', 'Normal')");
                         });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.ScheduledTrip", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("AvailableSeats")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BaseFare")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusRouteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("DepartureAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartnerId");
+
+                    b.HasIndex("BusId", "DepartureAtUtc")
+                        .IsUnique();
+
+                    b.HasIndex("BusId", "PartnerId");
+
+                    b.HasIndex("BusRouteId", "PartnerId");
+
+                    b.HasIndex("Status", "DepartureAtUtc", "BusRouteId");
+
+                    b.ToTable("ScheduledTrips", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ScheduledTrips_AvailableSeats", "[AvailableSeats] IS NULL OR [AvailableSeats] BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("CK_ScheduledTrips_Fare", "[BaseFare] > 0");
+
+                            t.HasCheckConstraint("CK_ScheduledTrips_Status", "[Status] IN ('Scheduled', 'Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Bus", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Partner");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.BusBooking", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.ScheduledTrip", null)
+                        .WithMany()
+                        .HasForeignKey("ScheduledTripId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.BusRoute", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.BusTerminal", "DestinationTerminal")
+                        .WithMany()
+                        .HasForeignKey("DestinationTerminalId", "PartnerId")
+                        .HasPrincipalKey("Id", "PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.BusTerminal", "OriginTerminal")
+                        .WithMany()
+                        .HasForeignKey("OriginTerminalId", "PartnerId")
+                        .HasPrincipalKey("Id", "PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DestinationTerminal");
+
+                    b.Navigation("OriginTerminal");
+
+                    b.Navigation("Partner");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.BusTerminal", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Location", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Location");
+
+                    b.Navigation("Partner");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.IncomingLog", b =>
@@ -597,6 +1042,14 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasForeignKey("MessageId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Partner", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.PartnerApplication", null)
+                        .WithMany()
+                        .HasForeignKey("PartnerApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.PartnerApplicationApproval", b =>
@@ -626,6 +1079,54 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.PartnerUser", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany("UserMemberships")
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", "RefUser")
+                        .WithMany("PartnerMemberships")
+                        .HasForeignKey("RefUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Partner");
+
+                    b.Navigation("RefUser");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.ScheduledTrip", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Bus", "Bus")
+                        .WithMany()
+                        .HasForeignKey("BusId", "PartnerId")
+                        .HasPrincipalKey("Id", "PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.BusRoute", "BusRoute")
+                        .WithMany()
+                        .HasForeignKey("BusRouteId", "PartnerId")
+                        .HasPrincipalKey("Id", "PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Bus");
+
+                    b.Navigation("BusRoute");
+
+                    b.Navigation("Partner");
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.Incoming", b =>
                 {
                     b.Navigation("Logs");
@@ -636,9 +1137,19 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Navigation("History");
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.Partner", b =>
+                {
+                    b.Navigation("UserMemberships");
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.PartnerApplication", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.RefUser", b =>
+                {
+                    b.Navigation("PartnerMemberships");
                 });
 #pragma warning restore 612, 618
         }

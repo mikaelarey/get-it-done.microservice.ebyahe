@@ -7,6 +7,7 @@ using EByahe.Domain.Models;
 using EByahe.Domain.Repositories;
 using EByahe.Domain.Interfaces;
 using EByahe.Domain.DataModels;
+using EByahe.Domain.Exceptions;
 
 namespace EByahe.Application.Services;
 
@@ -14,6 +15,13 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
   TimeProvider clock, ILogger<PartnerApplicationService> logger)
   : IPartnerApplicationService
 {
+  public async Task<PartnerApplicationEligibility> EligibilityAsync(string userId,
+    CancellationToken cancellationToken = default)
+  {
+    var active = await applications.GetActiveForUserAsync(userId, cancellationToken);
+    return new PartnerApplicationEligibility(active is null, active);
+  }
+
   public async Task<CustomerPartnerApplicationPage> ListAsync(string userId, int page, int pageSize,
     CancellationToken cancellationToken = default)
   {
@@ -27,6 +35,11 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
   {
     var application = await applications.GetForUserAsync(id, userId, cancellationToken);
     if (application is null) return null;
+    return MapDetails(application);
+  }
+
+  internal static CustomerPartnerApplicationDetails MapDetails(PartnerApplication application)
+  {
     var digits = new string(application.AccountNumber.Where(char.IsDigit).ToArray());
     var maskedNumber = "•••• " + (digits.Length > 4 ? digits[^4..] : new string('•', digits.Length));
     return new CustomerPartnerApplicationDetails(application.Id, application.TrackingId, application.Status,
@@ -42,6 +55,12 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
     CancellationToken cancellationToken = default)
   {
     var application = await applications.GetForUserAsync(id, userId, cancellationToken);
+    return await ReadDocumentAsync(application, documentId, storage, cancellationToken);
+  }
+
+  internal static async Task<CustomerPartnerDocumentContent?> ReadDocumentAsync(PartnerApplication? application,
+    Guid documentId, IDocumentStorage storage, CancellationToken cancellationToken)
+  {
     var document = application?.Documents.SingleOrDefault(item => item.Id == documentId);
     if (document is null) return null;
     var content = await storage.ReadAsync(new StoredDocument(document.StorageBucket, document.StorageKey), cancellationToken);
@@ -56,6 +75,9 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
   {
     if (string.IsNullOrWhiteSpace(createdBy) || createdBy.Length > 255 || createdBy != createdBy.Trim())
       throw new ArgumentException("A valid authenticated user ID is required.", nameof(createdBy));
+    // Reject a known duplicate before reading files or writing to document storage.
+    var active = await applications.GetActiveForUserAsync(createdBy, cancellationToken);
+    if (active is not null) throw new ActivePartnerApplicationException(active);
     var now = clock.GetUtcNow();
     var id = Guid.NewGuid();
     var corporate = request.Corporate;

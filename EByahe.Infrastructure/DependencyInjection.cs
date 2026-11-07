@@ -30,6 +30,14 @@ public static class DependencyInjection
     services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<EByaheDbContext>());
     services.AddScoped<IIncomingRepository, IncomingRepository>();
     services.AddScoped<IPartnerApplicationRepository, PartnerApplicationRepository>();
+    services.AddScoped<IPartnerApplicationReviewRepository, PartnerApplicationReviewRepository>();
+    services.AddScoped<IPartnerDirectoryRepository, PartnerDirectoryRepository>();
+    services.AddScoped<IBusBookingRepository, BusBookingRepository>();
+    services.AddScoped<IAdminBusBookingRepository, AdminBusBookingRepository>();
+    services.AddScoped<IPartnerPortalRepository, PartnerPortalRepository>();
+    services.AddScoped<IBusCatalogRepository, BusCatalogRepository>();
+    Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, TimeProvider.System);
+    services.AddScoped<BusCatalogSeeder>();
     services.AddOptions<DocumentStorageOptions>().Bind(configuration.GetSection("Storage"))
       .Validate(options => options.IsValid(), "Configure the Storage endpoint, bucket, region, and scoped credentials.");
     services.AddSingleton<IAmazonS3>(provider =>
@@ -50,6 +58,8 @@ public static class DependencyInjection
       .ValidateOnStart();
     services.AddSingleton<IEventSettings>(provider => provider.GetRequiredService<IOptions<KafkaOptions>>().Value);
     services.AddSingleton<IEventConsumerFactory, KafkaEventConsumerFactory>();
+    services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+    services.AddScoped<IOutboxRepository, OutboxRepository>();
     services.Configure<DatabaseInitializationOptions>(configuration.GetSection("Database"));
     services.AddScoped<IDatabaseMigrator, EByaheDatabaseMigrator>();
     services.AddScoped<EByaheInitializer>();

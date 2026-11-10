@@ -20,22 +20,22 @@ public sealed class PartnerPortalController(IPartnerPortalRepository portal) : C
   public async Task<ActionResult<PartnerDashboard>> Dashboard(CancellationToken cancellationToken) =>
     Ok(await portal.DashboardAsync(UserId, cancellationToken));
 
-  [HttpGet("bookings")]
+  [HttpGet("bookings"), Authorize(Policy = PartnerPortalAuthorization.ReadBookingsPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<AdminBusBookingSummary>>> Bookings([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken)
   {
     var result = await portal.BookingsAsync(UserId, query.Page, query.PageSize, cancellationToken);
     return Ok(new PartnerRecordsPage<AdminBusBookingSummary>(result.Items.Select(AdminBusBookingSummary.From).ToArray(), result.TotalCount, result.Page, result.PageSize));
   }
 
-  [HttpGet("terminals")]
+  [HttpGet("terminals"), Authorize(Policy = PartnerPortalAuthorization.ReadTerminalsPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalTerminal>>> Terminals([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
     Ok(await portal.TerminalsAsync(UserId, query.Page, query.PageSize, cancellationToken));
 
-  [HttpGet("scheduled-trips")]
+  [HttpGet("scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.ReadScheduledTripsPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalTrip>>> Trips([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
     Ok(await portal.TripsAsync(UserId, query.Page, query.PageSize, cancellationToken));
 
-  [HttpGet("users")]
+  [HttpGet("users"), Authorize(Policy = PartnerPortalAuthorization.ReadMembersPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalUser>>> Users([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
     Ok(await portal.UsersAsync(UserId, query.Page, query.PageSize, PartnerPortalAuthorization.CanCreateMembers(User), cancellationToken));
 }

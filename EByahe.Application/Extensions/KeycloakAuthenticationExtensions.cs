@@ -51,6 +51,21 @@ public static class KeycloakAuthenticationExtensions
       };
     });
     services.AddAuthorization(options => {
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadBookingsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadBookings(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadTerminalsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadTerminals(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteTerminalsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteTerminals(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadScheduledTripsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadScheduledTrips(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteScheduledTripsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteScheduledTrips(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadBusesPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadBuses(context.User)));
@@ -60,6 +75,9 @@ public static class KeycloakAuthenticationExtensions
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.CreateMembersPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanCreateMembers(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadMembersPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadMembers(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.Policy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.HasAccess(context.User)));

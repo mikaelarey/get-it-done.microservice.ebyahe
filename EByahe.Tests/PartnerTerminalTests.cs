@@ -9,7 +9,7 @@ namespace EByahe.Tests;
 public sealed partial class SqlServerDatabaseTests
 {
   [SqlServerFact]
-  public async Task PartnerTerminalCreationRequiresExactBusRolesWhileTheListRemainsReadableToPartners()
+  public async Task PartnerTerminalCreationAndListingRequireSeparateTerminalRoles()
   {
     var partner = await SeedMemberPartner(); await using var db = CreateDatabase();
     var location = new Location { Code = "TERMINAL-CITY", Name = "Terminal city" }; db.Locations.Add(location); await db.SaveChangesAsync();
@@ -22,12 +22,15 @@ public sealed partial class SqlServerDatabaseTests
       ["get-it-done-web"] = new { roles = new[] { "partner", "bus.read", "bus.write" } } } })
     {
       client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: roles, realmAccess: new { roles = new[] { "bus.read", "bus.write" } }));
-      Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/terminals")).StatusCode);
+      Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals/workspaces")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals/locations")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
     }
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("terminal.read")));
+    Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/terminals")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("terminal.read", "terminal.write")));
     Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
   }
 
@@ -42,7 +45,7 @@ public sealed partial class SqlServerDatabaseTests
     var foreign = new Partner { Code = "FOREIGN-TERMINAL", DisplayName = "Foreign operator" };
     db.BusTerminals.Add(new BusTerminal { Partner = foreign, Location = first, Name = "Hidden terminal", Address = "Hidden address" }); await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("terminal.read", "terminal.write")));
     Assert.Equal(partner.Id, Assert.Single((await client.GetFromJsonAsync<PartnerTerminalWorkspace[]>("/api/partner/terminals/workspaces"))!).Id);
     var locations = (await client.GetFromJsonAsync<PartnerTerminalLocation[]>("/api/partner/terminals/locations"))!;
     Assert.Equal(new[] { first.Id, second.Id }, locations.Select(location => location.Id));
@@ -63,11 +66,11 @@ public sealed partial class SqlServerDatabaseTests
     var next = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTerminal>>("/api/partner/terminals?pageSize=1&page=2"))!;
     Assert.Equal(2, page.TotalCount); Assert.NotEqual(Assert.Single(page.Items).Id, Assert.Single(next.Items).Id);
     Assert.All(page.Items.Concat(next.Items), row => Assert.Equal(partner.DisplayName, row.Partner));
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: PartnerApiFactory.Subject.ToUpperInvariant(), resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: PartnerApiFactory.Subject.ToUpperInvariant(), resourceAccess: BusRoles("terminal.read", "terminal.write")));
     Assert.Empty((await client.GetFromJsonAsync<PartnerTerminalWorkspace[]>("/api/partner/terminals/workspaces"))!);
     Assert.Empty((await client.GetFromJsonAsync<PartnerTerminalLocation[]>("/api/partner/terminals/locations"))!);
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("terminal.read", "terminal.write")));
     var membership = await db.PartnerUsers.SingleAsync(); membership.IsActive = false; await db.SaveChangesAsync();
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
     membership.IsActive = true; var savedPartner = await db.Partners.FindAsync(partner.Id); savedPartner!.Status = "Suspended"; await db.SaveChangesAsync();

@@ -860,6 +860,10 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasColumnType("nchar(64)")
                         .IsFixedLength();
 
+                    b.Property<string>("RequestedRolesJson")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)

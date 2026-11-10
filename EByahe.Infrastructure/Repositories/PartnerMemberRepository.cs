@@ -24,7 +24,7 @@ public sealed class PartnerMemberRepository(EByaheDbContext db, IOptions<KafkaOp
     join application in db.PartnerApplications on partner.PartnerApplicationId equals application.Id
     where application.BusinessCategory == "bus-operator" || application.BusinessCategory == "hotel"
     orderby partner.DisplayName
-    select new PartnerMemberWorkspace(partner.Id, partner.DisplayName, application.BusinessCategory);
+    select new PartnerMemberWorkspace(partner.Id, partner.DisplayName, application.BusinessCategory, null);
   public async Task<IReadOnlyList<PartnerMemberWorkspace>> WorkspacesAsync(string userId, CancellationToken cancellationToken) =>
     await Workspaces(userId).ToArrayAsync(cancellationToken);
 
@@ -36,25 +36,30 @@ public sealed class PartnerMemberRepository(EByaheDbContext db, IOptions<KafkaOp
       .SingleOrDefaultAsync(cancellationToken);
     var workspace = await Workspaces(userId, command.PartnerId).SingleOrDefaultAsync(cancellationToken);
     if (workspace is null) return null;
+    var roles = command.Roles ?? PartnerMemberRoles.Legacy(workspace.BusinessCategory);
+    if (!PartnerMemberRoles.Valid(workspace.BusinessCategory, roles)) throw new PartnerMemberRoleValidationException();
+    var rolesJson = JsonSerializer.Serialize(roles.Order(StringComparer.Ordinal).ToArray(), JsonOptions);
+    bool SameRoles(PartnerMemberRequest value) => (value.RequestedRolesJson
+      ?? JsonSerializer.Serialize(PartnerMemberRoles.Legacy(value.BusinessCategory).Order(StringComparer.Ordinal).ToArray(), JsonOptions)) == rolesJson;
     var existing = await db.PartnerMemberRequests.FindAsync([command.RequestId], cancellationToken);
     if (existing is not null)
     {
       if (existing.PartnerId != command.PartnerId || existing.CreatedBy != userId || existing.Email != command.Email
-        || existing.FirstName != command.FirstName || existing.LastName != command.LastName) throw new PartnerMemberRequestConflictException();
+        || existing.FirstName != command.FirstName || existing.LastName != command.LastName || !SameRoles(existing)) throw new PartnerMemberRequestConflictException();
       return Status(existing);
     }
     var pending = await db.PartnerMemberRequests.SingleOrDefaultAsync(x => x.PartnerId == command.PartnerId
       && x.Email == command.Email && x.Status == "Pending", cancellationToken);
-    if (pending is not null) return Status(pending);
+    if (pending is not null) { if (!SameRoles(pending)) throw new PartnerMemberRequestConflictException(); return Status(pending); }
     var now = DateTimeOffset.UtcNow;
     var protectedPassword = passwords.Protect(command.RequestId, passwords.Generate());
     var payload = JsonSerializer.Serialize(new { eventId = command.RequestId, eventType = "partner.member.requested",
-      schemaVersion = 1, occurredAtUtc = now, source = "ebyahe", createdBy = userId, partnerId = command.PartnerId,
+      schemaVersion = 2, occurredAtUtc = now, source = "ebyahe", createdBy = userId, partnerId = command.PartnerId,
       businessCategory = workspace.BusinessCategory, command.FirstName, command.LastName, command.Email,
-      protectedPassword }, JsonOptions);
+      roles = roles.Order(StringComparer.Ordinal).ToArray(), protectedPassword }, JsonOptions);
     var request = new PartnerMemberRequest { Id = command.RequestId, PartnerId = command.PartnerId, CreatedBy = userId,
       FirstName = command.FirstName, LastName = command.LastName, Email = command.Email, BusinessCategory = workspace.BusinessCategory,
-      CreatedAtUtc = now, RequestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload))) };
+      RequestedRolesJson = rolesJson, CreatedAtUtc = now, RequestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload))) };
     db.PartnerMemberRequests.Add(request);
     db.TemporaryPasswords.Add(new TemporaryPassword { RequestId = request.Id, ProtectedPassword = protectedPassword,
       CreatedAtUtc = now, AvailableUntilUtc = now.AddDays(7) });

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EByahe.Application.Controllers;
 
-[ApiController, Route("api/partner/terminals"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
+[ApiController, Route("api/partner/terminals"), Authorize(Policy = PartnerPortalAuthorization.WriteTerminalsPolicy)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class PartnerTerminalsController(IPartnerTerminalRepository terminals) : ControllerBase
 {

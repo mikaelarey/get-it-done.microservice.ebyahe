@@ -9,7 +9,25 @@ namespace EByahe.Tests;
 
 public sealed partial class SqlServerDatabaseTests
 {
-  private static object PartnerRoles() => new Dictionary<string, object> { ["get-it-done-web"] = new { roles = new[] { "partner" } } };
+  private static object PartnerRoles() => new Dictionary<string, object> { ["get-it-done-web"] = new { roles = new[] { "partner" } }, ["get-it-done-ebyahe-api"] = new { roles = new[] { "booking.read", "terminal.read", "scheduled-trip.read", "member.create" } } };
+
+  [SqlServerFact]
+  public async Task BookingReadDoesNotAllowUserOrBusRecords()
+  {
+    using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("booking.read")));
+    Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/bookings")).StatusCode);
+    foreach (var path in new[] { "users", "buses", "terminals", "scheduled-trips", "users/workspaces", "users/requests" })
+      Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/" + path)).StatusCode);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("member.create")));
+    Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/users")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/buses")).StatusCode);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("member.manage")));
+    Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/users")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/users/workspaces")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/users/requests")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/users", new {})).StatusCode);
+  }
 
   [SqlServerFact]
   public async Task PartnerPortalRequiresPartnerRoleInsteadOfAdminAcrossEveryEndpoint()

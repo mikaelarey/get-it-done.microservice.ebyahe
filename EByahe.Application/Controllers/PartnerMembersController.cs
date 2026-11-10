@@ -13,8 +13,12 @@ public sealed class PartnerMembersController(IPartnerMemberRepository members) :
 {
   private string UserId => User.FindFirst("sub")!.Value;
   [HttpGet("workspaces")]
-  public async Task<ActionResult<IReadOnlyList<PartnerMemberWorkspace>>> Workspaces(CancellationToken cancellationToken) =>
-    Ok(await members.WorkspacesAsync(UserId, cancellationToken));
+  public async Task<ActionResult<IReadOnlyList<PartnerMemberWorkspace>>> Workspaces(CancellationToken cancellationToken)
+  {
+    var workspaces = await members.WorkspacesAsync(UserId, cancellationToken);
+    return Ok(workspaces.Select(workspace => workspace with {
+      AvailableRoles = PartnerMemberRoles.Allowed(workspace.BusinessCategory) }).ToArray());
+  }
 
   [HttpPost]
   public async Task<ActionResult<PartnerMemberStatus>> Add(AddPartnerMemberRequest request, CancellationToken cancellationToken)
@@ -23,12 +27,14 @@ public sealed class PartnerMembersController(IPartnerMemberRepository members) :
       || string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.LastName)
       || request.FirstName.Any(char.IsControl) || request.LastName.Any(char.IsControl)
       || request.Email.Any(char.IsControl)) return BadRequest();
+    if (request.Roles is null || request.Roles.Length == 0) return BadRequest();
     try
     {
       var result = await members.QueueAsync(UserId, new(request.RequestId, request.PartnerId,
-        request.FirstName.Trim(), request.LastName.Trim(), request.Email.Trim().ToLowerInvariant()), cancellationToken);
+        request.FirstName.Trim(), request.LastName.Trim(), request.Email.Trim().ToLowerInvariant(), request.Roles), cancellationToken);
       return result is null ? Forbid() : AcceptedAtAction(nameof(Status), new { id = result.Id }, result);
     }
+    catch (PartnerMemberRoleValidationException) { return BadRequest(new ProblemDetails { Title = "Select supported partner roles; write and confirm permissions require their read permission." }); }
     catch (PartnerMemberRequestConflictException) { return Conflict(new ProblemDetails { Title = "This request ID has already been used. Please reopen the form." }); }
   }
 
@@ -54,5 +60,6 @@ public sealed class AddPartnerMemberRequest
   public Guid PartnerId { get; set; }
   [Required, StringLength(255)] public string FirstName { get; set; } = "";
   [Required, StringLength(255)] public string LastName { get; set; } = "";
+  [Required, MinLength(1), MaxLength(16)] public string[] Roles { get; set; } = [];
   [Required, EmailAddress, StringLength(254)] public string Email { get; set; } = "";
 }

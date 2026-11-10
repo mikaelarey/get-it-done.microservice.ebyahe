@@ -10,6 +10,7 @@ public sealed class PartnerMemberRequest
   public string LastName { get; set; } = "";
   public string Email { get; set; } = "";
   public string BusinessCategory { get; set; } = "";
+  public string? RequestedRolesJson { get; set; }
   public string RequestHash { get; set; } = "";
   public string Status { get; set; } = "Pending";
   public Guid? RefUserId { get; set; }

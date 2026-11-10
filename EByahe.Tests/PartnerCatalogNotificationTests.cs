@@ -23,7 +23,7 @@ public sealed partial class SqlServerDatabaseTests
       new PartnerUser { Partner = foreign, RefUser = foreignUser }, new PartnerUser { Partner = foreign, RefUserId = owner.Id });
     await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write", "terminal.read", "terminal.write", "scheduled-trip.read", "scheduled-trip.write")));
     var busCommand = new { partnerId = partner.Id, fleetNumber = "NOTIFY-BUS", plateNumber = "NTF-0001", busClass = "Deluxe", seatCapacity = 40 };
     var terminalCommand = new { partnerId = partner.Id, locationId = origin.LocationId, name = "Notification terminal", address = "Private terminal address" };
     var tripCommand = new { partnerId = partner.Id, busId = bus.Id, originTerminalId = origin.Id, destinationTerminalId = destination.Id,
@@ -56,7 +56,7 @@ public sealed partial class SqlServerDatabaseTests
   {
     var (partner, bus, origin, destination) = await SeedPartnerTripWorkspace(); await using var db = CreateDatabase();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write", "terminal.read", "terminal.write", "scheduled-trip.read", "scheduled-trip.write")));
     var commands = new (string Path, object Body)[] {
       ("buses", new { partnerId = partner.Id, fleetNumber = "ATOMIC-BUS", plateNumber = "ATM-0001", busClass = "Deluxe", seatCapacity = 40 }),
       ("terminals", new { partnerId = partner.Id, locationId = origin.LocationId, name = "Atomic terminal", address = "Terminal street" }),
@@ -85,7 +85,7 @@ public sealed partial class SqlServerDatabaseTests
       db.PartnerUsers.Add(new PartnerUser { PartnerId = partner.Id, RefUser = user });
     }
     await db.SaveChangesAsync(); using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write", "terminal.read", "terminal.write", "scheduled-trip.read", "scheduled-trip.write")));
     Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/partner/buses", new { partnerId = partner.Id, fleetNumber = "BATCH", plateNumber = "BAT-0001", busClass = "Deluxe", seatCapacity = 40 })).StatusCode);
     var events = await db.OutboxMessages.Where(message => message.EventType == "bus.created").ToArrayAsync(); Assert.Equal(2, events.Length);
     var recipients = new List<string>();

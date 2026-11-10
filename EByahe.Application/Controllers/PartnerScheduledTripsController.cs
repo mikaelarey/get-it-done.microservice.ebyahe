@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EByahe.Application.Controllers;
 
-[ApiController, Route("api/partner/scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
+[ApiController, Route("api/partner/scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.WriteScheduledTripsPolicy)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class PartnerScheduledTripsController(IPartnerScheduledTripRepository trips) : ControllerBase
 {

@@ -15,7 +15,7 @@ public sealed partial class SqlServerDatabaseTests
 {
   private static object MemberRoles(bool partner = true, bool create = true) => new Dictionary<string, object> {
     ["get-it-done-web"] = new { roles = partner ? new[] { "partner" } : new[] { "admin" } },
-    ["get-it-done-ebyahe-api"] = new { roles = create ? new[] { "member.create" } : new[] { "booking.read" } } };
+    ["get-it-done-ebyahe-api"] = new { roles = create ? new[] { "member.create", "booking.read" } : new[] { "booking.read" } } };
   private static IPartnerPasswordProtector MemberPasswords() => new PartnerPasswordProtector(new ConfigurationBuilder()
     .AddInMemoryCollection(new Dictionary<string, string?> { ["PartnerMembers:PasswordEncryptionKey"] = Convert.ToBase64String(new byte[32]) }).Build());
   private async Task<Partner> SeedMemberPartner(string category = "bus-operator")
@@ -35,7 +35,7 @@ public sealed partial class SqlServerDatabaseTests
   public async Task PartnerMemberCreationRequiresBothExactClientRolesAndActiveScopedMembership()
   {
     var partner = await SeedMemberPartner(); using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    var command = new { requestId = Guid.NewGuid(), partnerId = partner.Id, firstName = "New", lastName = "Member", email = "new@example.com" };
+    var command = new { requestId = Guid.NewGuid(), partnerId = partner.Id, firstName = "New", lastName = "Member", email = "new@example.com", roles = new[] { "booking.read" } };
     client.DefaultRequestHeaders.Authorization = null;
     Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/partner/users", command)).StatusCode);
     foreach (var roles in new[] { MemberRoles(create: false), MemberRoles(partner: false) })
@@ -56,11 +56,11 @@ public sealed partial class SqlServerDatabaseTests
   {
     var partner = await SeedMemberPartner(); using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: MemberRoles()));
-    var id = Guid.NewGuid(); var command = new { requestId = id, partnerId = partner.Id, firstName = "New", lastName = "Member", email = "NEW@example.com" };
+    var id = Guid.NewGuid(); var command = new { requestId = id, partnerId = partner.Id, firstName = "New", lastName = "Member", email = "NEW@example.com", roles = new[] { "booking.read" } };
     var response = await client.PostAsJsonAsync("/api/partner/users", command); Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     Assert.True(response.Headers.CacheControl!.NoStore); Assert.DoesNotContain("\"password\":", await response.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
     Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/partner/users", command)).StatusCode);
-    Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/partner/users", new { requestId = id, partnerId = partner.Id, firstName = "Changed", lastName = "Member", email = command.email })).StatusCode);
+    Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/partner/users", new { requestId = id, partnerId = partner.Id, firstName = "Changed", lastName = "Member", email = command.email, command.roles })).StatusCode);
     await using var db = CreateDatabase(); var request = await db.PartnerMemberRequests.SingleAsync();
     Assert.Equal("Pending", request.Status); Assert.Single(await db.PartnerUsers.ToArrayAsync());
     var temporary = await db.TemporaryPasswords.SingleAsync(); var password = MemberPasswords().Unprotect(id, temporary.ProtectedPassword);
@@ -84,10 +84,13 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Empty((await client.GetFromJsonAsync<PartnerMemberStatus[]>("/api/partner/users/requests"))!);
     Assert.All((await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalUser>>("/api/partner/users"))!.Items,
       row => Assert.Null(row.TemporaryPasswordRequestId));
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: MemberRoles(create: false)));
-    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/partner/users/requests/{id}/temporary-password")).StatusCode);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("member.manage")));
     Assert.All((await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalUser>>("/api/partner/users"))!.Items,
       row => Assert.Null(row.TemporaryPasswordRequestId));
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/partner/users/requests/{id}/temporary-password")).StatusCode);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: MemberRoles(create: false)));
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/partner/users/requests/{id}/temporary-password")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/users")).StatusCode);
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: MemberRoles()));
     await db.TemporaryPasswords.Where(row => row.RequestId == id)
       .ExecuteUpdateAsync(update => update.SetProperty(row => row.AvailableUntilUtc, DateTimeOffset.UtcNow.AddSeconds(-1)));

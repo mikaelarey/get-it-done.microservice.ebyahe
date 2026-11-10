@@ -18,7 +18,7 @@ public sealed partial class SqlServerDatabaseTests
   }
 
   [SqlServerFact]
-  public async Task PartnerScheduledTripCreationRequiresExactBusReadAndWriteRoles()
+  public async Task PartnerScheduledTripCreationRequiresExactScheduledTripRoles()
   {
     var (partner, bus, origin, destination) = await SeedPartnerTripWorkspace();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
@@ -31,11 +31,14 @@ public sealed partial class SqlServerDatabaseTests
       ["get-it-done-web"] = new { roles = new[] { "partner", "bus.read", "bus.write" } } } })
     {
       client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: roles, realmAccess: new { roles = new[] { "bus.read", "bus.write" } }));
-      Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/scheduled-trips")).StatusCode);
+      Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/scheduled-trips")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/scheduled-trips/options")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command)).StatusCode);
     }
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("scheduled-trip.read")));
+    Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/partner/scheduled-trips")).StatusCode);
+    Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command)).StatusCode);
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));
     Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command)).StatusCode);
   }
 
@@ -50,7 +53,7 @@ public sealed partial class SqlServerDatabaseTests
     var inactiveTerminal = new BusTerminal { PartnerId = partner.Id, LocationId = origin.LocationId, Name = "Inactive terminal", Address = "Hidden", IsActive = false };
     db.Buses.AddRange(foreignBus, inactiveBus); db.BusTerminals.AddRange(foreignTerminal, inactiveTerminal); await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));
     var options = (await client.GetFromJsonAsync<PartnerTripOptions>("/api/partner/scheduled-trips/options"))!;
     Assert.Equal(partner.Id, Assert.Single(options.Workspaces).Id); Assert.Equal(bus.Id, Assert.Single(options.Buses).Id);
     Assert.Equal(2, options.Terminals.Count); Assert.All(options.Terminals, terminal => Assert.Equal(partner.Id, terminal.PartnerId)); Assert.Empty(options.Routes);
@@ -86,10 +89,10 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(route.Id, Assert.Single(options.Routes).Id);
     var list = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTrip>>("/api/partner/scheduled-trips?pageSize=1"))!;
     Assert.Equal(3, list.TotalCount); Assert.Single(list.Items);
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: PartnerApiFactory.Subject.ToUpperInvariant(), resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: PartnerApiFactory.Subject.ToUpperInvariant(), resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));
     Assert.Empty((await client.GetFromJsonAsync<PartnerTripOptions>("/api/partner/scheduled-trips/options"))!.Buses);
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command)).StatusCode);
-    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));
     var membership = await db.PartnerUsers.SingleAsync(); membership.IsActive = false; await db.SaveChangesAsync();
     Assert.Empty((await client.GetFromJsonAsync<PartnerTripOptions>("/api/partner/scheduled-trips/options"))!.Workspaces);
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command)).StatusCode);

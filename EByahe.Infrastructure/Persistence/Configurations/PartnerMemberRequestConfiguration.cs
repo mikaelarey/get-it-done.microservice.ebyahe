@@ -16,7 +16,6 @@ public sealed class PartnerMemberRequestConfiguration : IEntityTypeConfiguration
     builder.Property(x => x.BusinessCategory).HasMaxLength(32).IsRequired();
     builder.Property(x => x.RequestedRolesJson).HasMaxLength(2048);
     builder.Property(x => x.RequestHash).HasMaxLength(64).IsFixedLength().IsRequired();
-    builder.Property(x => x.Status).HasMaxLength(20).IsRequired();
-    builder.HasIndex(x => new { x.PartnerId, x.Email }).IsUnique().HasFilter("[Status] = 'Pending'");
+    builder.HasIndex(x => new { x.PartnerId, x.Email }).IsUnique().HasFilter("[CodeDecodePartnerMemberRequestStatus] = 1");
   }
 }

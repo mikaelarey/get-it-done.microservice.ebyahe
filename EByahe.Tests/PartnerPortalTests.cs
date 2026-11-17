@@ -76,7 +76,8 @@ public sealed partial class SqlServerDatabaseTests
     db.ScheduledTrips.AddRange(second, foreignTrip);
     db.PartnerUsers.Add(new PartnerUser { Partner = foreign, RefUserId = colleague.Id });
     static BusBooking Booking(Guid? trip) => new() { Id = Guid.NewGuid(), RequestId = Guid.NewGuid(), ScheduledTripId = trip,
-      Reference = "BK-" + Guid.NewGuid().ToString("N"), CreatedBy = "customer", CreatedAtUtc = DateTimeOffset.UtcNow, RequestHash = new string('A', 64), DetailsJson = "{}", ReservedSeats = trip == null ? 0 : 1 };
+      Reference = "BK-" + Guid.NewGuid().ToString("N"), CreatedBy = "customer", CreatedAtUtc = DateTimeOffset.UtcNow, RequestHash = new string('A', 64), DetailsJson = "{}", ReservedSeats = 0 };
+    AuditActorFixture.Add(ConnectionString, "customer");
     db.BusBookings.AddRange(Booking(first.Id), Booking(second.Id), Booking(foreignTrip.Id), Booking(null)); await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: "portal-member", resourceAccess: PartnerRoles()));

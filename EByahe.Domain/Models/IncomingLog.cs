@@ -6,7 +6,9 @@ public sealed class IncomingLog
   public Guid IncomingId { get; init; }
   public Guid DeliveryId { get; init; }
   public int AttemptCount { get; init; }
-  public string Status { get; init; } = string.Empty;
+  public int CodeDecodeIncomingStatus { get; set; } = 0;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Status { get => CodeDecodeValues.Decode("IncomingStatuses", CodeDecodeIncomingStatus); init => CodeDecodeIncomingStatus = CodeDecodeValues.Code("IncomingStatuses", value); }
   public DateTime RecordedDateTime { get; init; }
   public string? Error { get; init; }
 }

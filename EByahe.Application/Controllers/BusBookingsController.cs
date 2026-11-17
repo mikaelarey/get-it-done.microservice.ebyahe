@@ -78,4 +78,26 @@ public sealed class BusBookingsController(IBusBookingService bookings) : Control
     var booking = await bookings.GetAsync(id, User.FindFirst("sub")!.Value, cancellationToken);
     return booking is null ? NotFound() : Ok(booking);
   }
+
+  // Payment service forwards the customer's access token; ownership is checked by the existing booking service.
+  [HttpGet("{id:guid}/status-history")]
+  public async Task<IActionResult> History(Guid id, CancellationToken cancellationToken)
+  {
+    Response.Headers.CacheControl = "private, no-store";
+    var userId = User.FindFirst("sub")!.Value;
+    if (await bookings.GetAsync(id, userId, cancellationToken) is null) return NotFound();
+    return Ok(await bookings.HistoryAsync(id, userId, cancellationToken));
+  }
+
+  [HttpGet("{id:guid}/payment-summary")]
+  public async Task<IActionResult> PaymentSummary(Guid id, CancellationToken cancellationToken)
+  {
+    Response.Headers.CacheControl = "private, no-store";
+    var booking = await bookings.GetAsync(id, User.FindFirst("sub")!.Value, cancellationToken);
+    if (booking is null) return NotFound();
+    return Ok(new
+    { booking.Id, booking.Reference, booking.Status, booking.Total, PaymentMethod = booking.Payment.Method, booking.ReservedSeats,
+      booking.PaymentStatus, booking.PaymentType, Passengers = booking.Booking.Passengers.Count,
+      AvailableSeats = await bookings.AvailableSeatsAsync(id, User.FindFirst("sub")!.Value, cancellationToken) });
+  }
 }

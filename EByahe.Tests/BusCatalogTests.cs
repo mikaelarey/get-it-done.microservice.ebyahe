@@ -13,6 +13,7 @@ public sealed partial class SqlServerDatabaseTests
   private async Task SeedBookingTripAsync()
   {
     await using var db = CreateDatabase();
+    db.RefUsers.AddRange(MembershipUser(PartnerApiFactory.Subject), MembershipUser("another-owner"), MembershipUser("test-user"));
     var partner = new Partner { Code = "TEST", DisplayName = "Victory Liner" };
     var origin = new BusTerminal { Partner = partner, Location = new Location { Code = "MNL", Name = "Manila" }, Name = "Manila Bus Station" };
     var destination = new BusTerminal { Partner = partner, Location = new Location { Code = "BAG", Name = "Baguio" }, Name = "Baguio Bus Station" };
@@ -73,7 +74,7 @@ public sealed partial class SqlServerDatabaseTests
   }
 
   [SqlServerFact]
-  public async Task TripAvailabilityComesFromTheScheduleAndLimitsSearchAndSubmission()
+  public async Task TripAvailabilityLimitsSearchButSubmittedBookingsLeaveInventoryUnchanged()
   {
     await SeedBookingTripAsync();
     await using var db = CreateDatabase();
@@ -91,9 +92,10 @@ public sealed partial class SqlServerDatabaseTests
     var request = BookingRequest();
     request.Booking.Passengers.Add(new() { FullName = "Second Traveler", Type = "adult" });
     request.Fare.Fares.Add(new() { Label = "12B Adult", Amount = 750m }); request.Fare.Fee = 45m; request.Fare.Total = 1545m;
-    using var rejected = await client.PostAsJsonAsync("/api/bus-bookings", request); Assert.Equal(HttpStatusCode.Conflict, rejected.StatusCode);
-    using var accepted = await client.PostAsJsonAsync("/api/bus-bookings", BookingRequest()); Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
-    await db.Entry(schedule).ReloadAsync(); Assert.Equal(0, schedule.AvailableSeats);
+    using var pending = await client.PostAsJsonAsync("/api/bus-bookings", request); Assert.Equal(HttpStatusCode.Created, pending.StatusCode);
+    var online = BookingRequest(); online.Payment.Method = "paymongo"; online.Payment.Provider = "PayMongo";
+    using var accepted = await client.PostAsJsonAsync("/api/bus-bookings", online); Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
+    await db.Entry(schedule).ReloadAsync(); Assert.Equal(1, schedule.AvailableSeats);
     schedule.AvailableSeats = 0; await db.SaveChangesAsync();
     using var soldOut = await client.GetAsync($"/api/bus-catalog/trips/{schedule.Id}"); Assert.Equal(HttpStatusCode.NotFound, soldOut.StatusCode);
     Assert.Empty((await client.GetFromJsonAsync<BusTripResponse[]>(query))!);

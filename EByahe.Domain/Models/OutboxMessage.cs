@@ -9,7 +9,9 @@ public sealed class OutboxMessage
   public string Topic { get; set; } = string.Empty;
   public string MessageKey { get; set; } = string.Empty;
   public string Payload { get; set; } = string.Empty;
-  public string Status { get; set; } = "Pending";
+  public int CodeDecodeOutboxStatus { get; set; } = 1;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Status { get => CodeDecodeValues.Decode("OutboxStatuses", CodeDecodeOutboxStatus); set => CodeDecodeOutboxStatus = CodeDecodeValues.Code("OutboxStatuses", value); }
   public DateTime CreatedDateTime { get; set; }
   public DateTime NextAttemptDateTime { get; set; }
   public int AttemptCount { get; set; }

@@ -7,6 +7,7 @@ public interface IEventSettings
   string Topic { get; }
   string ConsumerGroup { get; }
   string PartnerMembersTopic => "get-it-done.ebyahe.partner-members.v1";
+  string PaymentCompletedTopic => "get-it-done.payment.completed.v1";
   int RetryDelaySeconds { get; }
   int PollIntervalMilliseconds => 1000;
   int LeaseSeconds => 120;

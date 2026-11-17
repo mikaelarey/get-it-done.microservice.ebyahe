@@ -38,4 +38,11 @@ public sealed class PartnerPortalController(IPartnerPortalRepository portal) : C
   [HttpGet("users"), Authorize(Policy = PartnerPortalAuthorization.ReadMembersPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalUser>>> Users([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
     Ok(await portal.UsersAsync(UserId, query.Page, query.PageSize, PartnerPortalAuthorization.CanCreateMembers(User), cancellationToken));
+
+  [HttpGet("users/{id:guid}"), Authorize(Policy = PartnerPortalAuthorization.ReadMembersPolicy)]
+  public async Task<ActionResult<PartnerPortalUserDetails>> UserDetails(Guid id, CancellationToken cancellationToken)
+  {
+    var result = await portal.UserDetailsAsync(UserId, id, cancellationToken);
+    return result is null ? NotFound() : Ok(result);
+  }
 }

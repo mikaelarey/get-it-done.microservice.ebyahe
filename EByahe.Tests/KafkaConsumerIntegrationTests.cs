@@ -64,7 +64,7 @@ public sealed partial class SqlServerDatabaseTests
         Assert.Equal(delivery.Offset.Value, receipt.Offset);
         Assert.Equal(record.Payload, receipt.Payload);
         Assert.Equal("Processed", receipt.Status);
-        Assert.Equal("account-user", (await check.RefUsers.SingleAsync()).ExternalUserId);
+        Assert.Equal("account-user", (await check.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync()).ExternalUserId);
         Assert.Equal(4, await check.IncomingLogs.CountAsync());
 
         using var observer = new ConsumerBuilder<string, string>(new ConsumerConfig

@@ -53,15 +53,18 @@ public sealed class PartnerStorageMigrationTests
         StorageBucket = storage.Bucket, StorageKey = "ebyahe/partner-applications/temporary-seed", UploadedAtUtc = application.SubmittedAtUtc
       };
       application.Documents.Add(document);
-      database.PartnerApplications.Add(application);
+
       var approval = new PartnerApplicationApproval
       {
         Id = Guid.NewGuid(), PartnerApplicationId = application.Id, Status = "Pending", ChangedBy = "legacy-user", DateTimeCreated = application.SubmittedAtUtc
       };
-      database.PartnerApplicationApprovals.Add(approval);
-      await database.SaveChangesAsync();
-      var firstHistory = await database.PartnerApplicationHistories.SingleAsync();
-      var firstId = firstHistory.Id;
+      await InsertLegacyAsync(database, "PartnerApplications", application);
+      await InsertLegacyAsync(database, "PartnerApplicationDocuments", document);
+      await InsertLegacyAsync(database, "PartnerApplicationApprovals", approval);
+      var firstId = Guid.NewGuid();
+      var initialSnapshot = LegacySnapshot(application, CurrentFile);
+      await database.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [PartnerApplicationHistories] ([Id],[PartnerApplicationId],[PreviousValue],[CurrentValue],[Status],[DateTimeCreated]) VALUES ({firstId},{application.Id},NULL,{initialSnapshot},'Submitted',{application.SubmittedAtUtc})");
+      await database.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [RefUsers] ([Id],[FirstName],[LastName],[Email],[CreatedAtUtc]) VALUES ('legacy-user','Legacy','User','legacy-user@example.com',{application.SubmittedAtUtc})");
       var secondId = Guid.NewGuid();
       var oldJson = LegacySnapshot(application, OldFile);
       var currentJson = LegacySnapshot(application, CurrentFile);
@@ -132,4 +135,13 @@ public sealed class PartnerStorageMigrationTests
     Assert.Equal(storage.Bucket, document.GetProperty("StorageBucket").GetString());
     return storage.Objects[document.GetProperty("StorageKey").GetString()!];
   }
+  private static async Task InsertLegacyAsync(EByaheDbContext db, string table, object value)
+  {
+    var columns = await db.Database.SqlQueryRaw<string>("SELECT [name] AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID({0})", table).ToArrayAsync();
+    var properties = value.GetType().GetProperties().Where(property => columns.Contains(property.Name)).ToArray();
+    var names = string.Join(",", properties.Select(property => "[" + property.Name + "]"));
+    var parameters = string.Join(",", properties.Select((_, index) => "@legacy" + index));
+    await db.Database.ExecuteSqlRawAsync("INSERT INTO [" + table + "] (" + names + ") VALUES (" + parameters + ")", properties.Select((property, index) => new SqlParameter("@legacy" + index, property.GetValue(value) ?? DBNull.Value)).ToArray());
+  }
+
 }

@@ -333,3 +333,47 @@ image formats, filename handling, CORS, JWT rejection, creator spoofing,
 complete document snapshots, append-only enforcement, and transaction rollback.
 
 Live update endpoints, delivery rules and hosting requirements: [SignalR](docs/realtime.md).
+
+
+## Setup codes and audit identities
+
+The `NormalizeCodeDecodeAndAuditUsers` migration stores setup references as integer codes.
+Setup tables use plural names; reference columns use singular names, for example
+`CodeDecodeBookingStatuses.Code` -> `CodeDecodeBookingStatus`. Previous-status
+log fields use `CodeDecodePrevious...Status`.
+
+Every setup table has a GUID primary key `Id`, an identity `Code` starting at 1,
+`Decode` for its label, `CreatedBy` (default `System`), and UTC `DateTimeCreated`.
+`AK_<table>_Code` is a unique constraint backed by a unique SQL Server index;
+foreign keys target this indexed code, not the GUID. Seed codes are explicit and
+consistent across environments. The workflow catalog and query adapter preserve
+decoded status strings in existing API contracts. Add workflow states through a
+migration and the matching domain catalog; do not renumber existing codes.
+
+Tables in this service:
+
+- `CodeDecodeOutboxStatuses`
+- `CodeDecodeOutgoingStatuses`
+- `CodeDecodeIncomingStatuses`
+- `CodeDecodeBookingStatuses`
+- `CodeDecodePaymentStatuses`
+- `CodeDecodePaymentTypes`
+- `CodeDecodePartnerApplicationStatuses`
+- `CodeDecodePartnerApplicationApprovalStatuses`
+- `CodeDecodePartnerStatuses`
+- `CodeDecodeScheduledTripStatuses`
+- `CodeDecodePartnerMemberRequestStatuses`
+
+Audit fields (`CreatedBy`, `UpdatedBy`, `ChangedBy`, `ChangedById` when present)
+reference local `RefUsers`. The principal key is the unique external subject `RefUsers.ExternalUserId`.
+System seeds and named background processes have explicit system identities.
+Authenticated actors must already exist in the local directory; EByahe and Notification receive real account projections through Kafka.
+An unknown creator cannot be substituted or silently turned into a user.
+
+The migration backfills existing status labels before dropping the old text columns.
+It aborts transactionally for unmapped labels or unresolved audit actors. Before
+upgrading another environment, synchronize its real user directory into `RefUsers`
+and apply pending EF migrations with the existing deployment procedure.
+
+Run `CodeDecodeSchemaTests` with the service's SQL Server test environment variable
+to check identity generation, unique indexes, code references and audit FK rejection.

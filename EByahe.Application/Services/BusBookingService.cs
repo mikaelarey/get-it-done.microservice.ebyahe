@@ -12,6 +12,14 @@ namespace EByahe.Application.Services;
 
 public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalogRepository catalog, TimeProvider clock) : IBusBookingService
 {
+  public async Task<int?> AvailableSeatsAsync(Guid id, string userId, CancellationToken cancellationToken)
+  {
+    var booking = await bookings.GetForUserAsync(id, userId, cancellationToken);
+    if (booking?.ScheduledTripId is not { } tripId) return null;
+    return (await catalog.GetForBookingAsync(tripId, cancellationToken))?.AvailableSeats;
+  }
+  public Task<IReadOnlyList<BusBookingStatusLog>> HistoryAsync(Guid id, string userId, CancellationToken cancellationToken) =>
+    bookings.HistoryAsync(id, userId, cancellationToken);
   public async Task<(BusBookingResponse Booking, bool Created)> SubmitAsync(CreateBusBookingRequest request, string userId, CancellationToken cancellationToken)
   {
     if (string.IsNullOrWhiteSpace(userId) || userId.Length > 255 || userId != userId.Trim())
@@ -33,11 +41,9 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
   private async Task<(BusBookingResponse Booking, bool Created)> CreateAsync(CreateBusBookingRequest request,
     string userId, string snapshot, string hash, CancellationToken cancellationToken)
   {
-    var scheduled = await catalog.GetAsync(request.Trip.TripId, cancellationToken)
+    var scheduled = await catalog.GetForBookingAsync(request.Trip.TripId, cancellationToken)
       ?? throw new SeatReservationException("This trip is no longer available. Please search again.");
     var trip = BusTripResponse.From(scheduled);
-    if (trip.AvailableSeats is { } seats && request.Booking.Passengers.Count > seats)
-      throw new SeatReservationException("There are not enough available seats for these passengers. Please search again.");
     if (request.Trip.Origin != trip.Origin || request.Trip.Destination != trip.Destination
       || request.Trip.Operator != trip.Operator || request.Trip.BusClass != trip.Seat
       || (request.Trip.PlateNumber is not null && request.Trip.PlateNumber != trip.PlateNumber)
@@ -65,9 +71,12 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
     {
       Id = id, Reference = $"BK-{id:N}".ToUpperInvariant(), CreatedBy = userId,
       RequestId = request.RequestId, CreatedAtUtc = clock.GetUtcNow(), Total = request.Fare.Total,
-      RequestHash = hash, DetailsJson = snapshot, ScheduledTripId = scheduled.Id
+      RequestHash = hash, DetailsJson = snapshot, ScheduledTripId = scheduled.Id,
+      PaymentType = request.Payment.Type ?? (request.Payment.Method switch
+      { "cash" => "Cash", "card" => "Credit/Debit Card", "wallet" => request.Payment.Provider, _ => null })
     };
-    var saved = await bookings.ReserveAndAddAsync(booking, scheduled, request.Booking.Passengers.Count, cancellationToken);
+    // Submission never holds seats. A verified successful payment reserves inventory atomically.
+    var saved = await bookings.AddSubmittedAsync(booking, scheduled, cancellationToken);
     return (Existing(saved, hash), saved.Id == id);
   }
 
@@ -84,7 +93,7 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
     {
       var snapshot = Snapshot(booking);
       return new BusBookingSummary(booking.Id, booking.Reference, booking.Status, booking.CreatedAtUtc, booking.Total,
-        snapshot.Trip, snapshot.Booking.Passengers.Count, snapshot.Payment.Provider, booking.ReservedSeats);
+        snapshot.Trip, snapshot.Booking.Passengers.Count, snapshot.Payment.Provider, booking.ReservedSeats, booking.PaymentStatus, booking.PaymentType, booking.PaymentReviewRequired);
     }).ToArray(), result.TotalCount, page, pageSize);
   }
 
@@ -96,12 +105,12 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
   {
     var snapshot = Snapshot(booking);
     return new(booking.Id, booking.Reference, booking.Status, booking.CreatedAtUtc, booking.Total,
-      snapshot.Trip, snapshot.Booking, snapshot.Payment, snapshot.Fare, booking.ReservedSeats);
+      snapshot.Trip, snapshot.Booking, snapshot.Payment, snapshot.Fare, booking.ReservedSeats, booking.PaymentStatus, booking.PaymentType, booking.PaymentReviewRequired);
   }
 
   private static BusBookingResponse Existing(BusBooking booking, string hash) => booking.RequestHash == hash
     ? Response(booking) : throw new BookingRequestConflictException();
-  private static BusBookingResponse Response(BusBooking booking) => new(booking.Id, booking.Reference, booking.Status, booking.CreatedAtUtc, booking.Total, booking.ReservedSeats);
+  private static BusBookingResponse Response(BusBooking booking) => new(booking.Id, booking.Reference, booking.Status, booking.CreatedAtUtc, booking.Total, booking.ReservedSeats, booking.PaymentStatus, booking.PaymentType, booking.PaymentReviewRequired);
 }
 
 public sealed class BookingRequestConflictException : Exception;

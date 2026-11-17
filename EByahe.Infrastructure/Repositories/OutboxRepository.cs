@@ -22,7 +22,7 @@ public sealed class OutboxRepository(EByaheDbContext database) : IOutboxReposito
     var token = Guid.NewGuid();
     var until = now.Add(lease);
     var claimed = await eligible.Where(row => row.Id == candidate.Id && row.AttemptCount == candidate.AttemptCount)
-      .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.Status, "Publishing")
+      .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.CodeDecodeOutboxStatus, EByahe.Domain.Models.CodeDecodeValues.Code("OutboxStatuses", "Publishing"))
         .SetProperty(row => row.AttemptCount, row => row.AttemptCount + 1)
         .SetProperty(row => row.LockToken, token).SetProperty(row => row.LockedUntil, until), cancellationToken);
     if (claimed == 0) return null;
@@ -45,7 +45,7 @@ public sealed class OutboxRepository(EByaheDbContext database) : IOutboxReposito
     try
     {
       var changed = await Owned(message).ExecuteUpdateAsync(setters => setters
-        .SetProperty(row => row.Status, "Published").SetProperty(row => row.LockToken, (Guid?)null)
+        .SetProperty(row => row.CodeDecodeOutboxStatus, EByahe.Domain.Models.CodeDecodeValues.Code("OutboxStatuses", "Published")).SetProperty(row => row.LockToken, (Guid?)null)
         .SetProperty(row => row.LockedUntil, (DateTime?)null), cancellationToken);
       RequireOwnership(changed);
       database.Outgoing.Add(Outgoing.Record(message, "Published", now, result.Partition, result.Offset));
@@ -65,7 +65,7 @@ public sealed class OutboxRepository(EByaheDbContext database) : IOutboxReposito
   {
     await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
     var changed = await Owned(message).ExecuteUpdateAsync(setters => setters
-      .SetProperty(row => row.Status, "Failed").SetProperty(row => row.NextAttemptDateTime, retryAt)
+      .SetProperty(row => row.CodeDecodeOutboxStatus, EByahe.Domain.Models.CodeDecodeValues.Code("OutboxStatuses", "Failed")).SetProperty(row => row.NextAttemptDateTime, retryAt)
       .SetProperty(row => row.LockToken, (Guid?)null).SetProperty(row => row.LockedUntil, (DateTime?)null), cancellationToken);
     RequireOwnership(changed);
     database.Outgoing.Add(Outgoing.Record(message, "Failed", now, error: error));

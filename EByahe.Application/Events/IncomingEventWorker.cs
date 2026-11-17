@@ -10,7 +10,7 @@ public sealed class IncomingEventWorker(IEventConsumerFactory consumers, IServic
   {
     if (!settings.Enabled || !settings.ConsumerEnabled)
     {
-      logger.LogInformation("Kafka Account user consumption is disabled.");
+      logger.LogInformation("Kafka incoming event consumption is disabled.");
       return Task.CompletedTask;
     }
     // Confluent Consume blocks. Keep it off the .NET 9 host startup thread.
@@ -32,7 +32,7 @@ public sealed class IncomingEventWorker(IEventConsumerFactory consumers, IServic
           await using var scope = scopeFactory.CreateAsyncScope();
           await scope.ServiceProvider.GetRequiredService<IncomingEventProcessor>()
             .ProcessAsync(consumer, record, cancellationToken);
-          logger.LogInformation("Processed Account user event {Topic}/{Partition}/{Offset} for group {Group}.",
+          logger.LogInformation("Processed incoming event {Topic}/{Partition}/{Offset} for group {Group}.",
             record.Topic, record.Partition, record.Offset, settings.ConsumerGroup);
           record = null;
         }

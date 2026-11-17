@@ -71,7 +71,7 @@ public sealed partial class SqlServerDatabaseTests
     var repo = new PartnerMemberRepository(db, Options.Create(new KafkaOptions()), MemberPasswords());
     var record = MemberReply(request, true);
     await repo.CompleteAsync(record, default); await repo.CompleteAsync(record, default);
-    Assert.Equal(2, await db.PartnerUsers.CountAsync()); Assert.Equal(2, await db.RefUsers.CountAsync());
+    Assert.Equal(2, await db.PartnerUsers.CountAsync()); Assert.Equal(2, await db.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").CountAsync());
     var status = await client.GetFromJsonAsync<PartnerMemberStatus>($"/api/partner/users/requests/{id}");
     Assert.Equal("Completed", status!.Status); Assert.True(status.HasTemporaryPassword);
     var users = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalUser>>("/api/partner/users"))!;
@@ -111,7 +111,7 @@ public sealed partial class SqlServerDatabaseTests
     var request = await db.PartnerMemberRequests.SingleAsync(); Assert.Equal("hotel", request.BusinessCategory);
     await repo.CompleteAsync(MemberReply(request, false, existing.ExternalUserId), default);
     Assert.Empty(await db.TemporaryPasswords.ToArrayAsync());
-    Assert.Equal("Original", (await db.RefUsers.SingleAsync(x => x.Id == existing.Id)).FirstName);
+    Assert.Equal("Original", (await db.RefUsers.Where(user => user.Provider != "System").SingleAsync(x => x.Id == existing.Id)).FirstName);
     Assert.True((await db.PartnerUsers.SingleAsync(x => x.RefUserId == existing.Id)).IsActive);
     var second = command with { RequestId = Guid.NewGuid(), Email = "another@example.com" };
     await repo.QueueAsync(PartnerApiFactory.Subject, second, default);

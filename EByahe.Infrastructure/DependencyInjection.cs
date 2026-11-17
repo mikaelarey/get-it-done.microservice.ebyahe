@@ -33,6 +33,7 @@ public static class DependencyInjection
     services.AddScoped<IPartnerApplicationReviewRepository, PartnerApplicationReviewRepository>();
     services.AddScoped<IPartnerDirectoryRepository, PartnerDirectoryRepository>();
     services.AddScoped<IBusBookingRepository, BusBookingRepository>();
+    services.AddScoped<IBookingPaymentRepository, BookingPaymentRepository>();
     services.AddScoped<IAdminBusBookingRepository, AdminBusBookingRepository>();
     services.AddScoped<IPartnerPortalRepository, PartnerPortalRepository>();
     services.AddScoped<IPartnerBusRepository, PartnerBusRepository>();

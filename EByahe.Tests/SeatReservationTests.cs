@@ -10,9 +10,34 @@ namespace EByahe.Tests;
 
 public sealed partial class SqlServerDatabaseTests
 {
+  [SqlServerFact]
+  public async Task CashSubmissionsAndRetriesNeverHoldSeatsOrBecomeConfirmed()
+  {
+    await SeedBookingTripAsync();
+    using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    var request = BookingRequest();
+    var responses = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => client.PostAsJsonAsync("/api/bus-bookings", request)));
+    try
+    {
+      Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Created);
+      var receipts = await Task.WhenAll(responses.Select(response => response.Content.ReadFromJsonAsync<BusBookingResponse>()));
+      Assert.All(receipts, receipt => { Assert.Equal(0, receipt!.ReservedSeats); Assert.Equal("Submitted", receipt.Status); });
+      Assert.Single(receipts.Select(receipt => receipt!.Id).Distinct());
+      // A separate cash request also leaves inventory untouched.
+      using var another = await client.PostAsJsonAsync("/api/bus-bookings", BookingRequest());
+      Assert.Equal(HttpStatusCode.Created, another.StatusCode);
+      await using var db = CreateDatabase();
+      Assert.Equal(40, (await db.ScheduledTrips.SingleAsync()).AvailableSeats);
+      Assert.All(await db.BusBookings.ToListAsync(), booking =>
+      { Assert.Equal(0, booking.ReservedSeats); Assert.Null(booking.PaymentId); Assert.Null(booking.PaidAtUtc); });
+    }
+    finally { foreach (var response in responses) response.Dispose(); }
+  }
+
   private static CreateBusBookingRequest ReservationRequest(int passengers)
   {
     var request = BookingRequest();
+    request.Payment.Method = "paymongo"; request.Payment.Provider = "PayMongo";
     request.Booking.Passengers = Enumerable.Range(1, passengers)
       .Select(index => new BusPassengerRequest { FullName = $"Traveler {index}", Type = "adult" }).ToList();
     request.Fare.Fares = Enumerable.Range(1, passengers)
@@ -22,7 +47,7 @@ public sealed partial class SqlServerDatabaseTests
   }
 
   [SqlServerFact]
-  public async Task SeatReservationsAreScopedToTheSelectedDepartureAndReplayAfterSellout()
+  public async Task SubmittedBookingsDoNotReserveSeatsOnEitherDeparture()
   {
     await SeedBookingTripAsync();
     await using var db = CreateDatabase();
@@ -33,25 +58,25 @@ public sealed partial class SqlServerDatabaseTests
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     var request = ReservationRequest(2);
     using var response = await client.PostAsJsonAsync("/api/bus-bookings", request); Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-    var receipt = (await response.Content.ReadFromJsonAsync<BusBookingResponse>())!; Assert.Equal(2, receipt.ReservedSeats);
+    var receipt = (await response.Content.ReadFromJsonAsync<BusBookingResponse>())!; Assert.Equal(0, receipt.ReservedSeats);
     var details = (await client.GetFromJsonAsync<BusBookingDetailsResponse>($"/api/bus-bookings/{receipt.Id}"))!;
-    Assert.Equal(2, details.ReservedSeats); Assert.Equal("Passenger 1 · Adult", details.Fare.Fares[0].Label);
+    Assert.Equal(0, details.ReservedSeats); Assert.Equal("Passenger 1 · Adult", details.Fare.Fares[0].Label);
     await db.Entry(first).ReloadAsync(); await db.Entry(second).ReloadAsync();
-    Assert.Equal(0, first.AvailableSeats); Assert.Equal(4, second.AvailableSeats);
+    Assert.Equal(2, first.AvailableSeats); Assert.Equal(4, second.AvailableSeats);
     using var replay = await client.PostAsJsonAsync("/api/bus-bookings", request); Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
     Assert.Equal(receipt, await replay.Content.ReadFromJsonAsync<BusBookingResponse>());
     var next = ReservationRequest(1); next.Trip.TripId = second.Id;
     next.Trip.DepartureDate = second.DepartureAtUtc.ToOffset(TimeSpan.FromHours(8)).ToString("yyyy-MM-dd");
     using var nextResponse = await client.PostAsJsonAsync("/api/bus-bookings", next); Assert.Equal(HttpStatusCode.Created, nextResponse.StatusCode);
     await db.Entry(first).ReloadAsync(); await db.Entry(second).ReloadAsync();
-    Assert.Equal(0, first.AvailableSeats); Assert.Equal(3, second.AvailableSeats);
-    Assert.Equal(3, await db.BusBookings.SumAsync(x => x.ReservedSeats));
+    Assert.Equal(2, first.AvailableSeats); Assert.Equal(4, second.AvailableSeats);
+    Assert.Equal(0, await db.BusBookings.SumAsync(x => x.ReservedSeats));
     var page = (await client.GetFromJsonAsync<BusBookingPage>("/api/bus-bookings"))!;
-    Assert.All(page.Items, row => Assert.Equal(row.Passengers, row.ReservedSeats));
+    Assert.All(page.Items, row => Assert.Equal(0, row.ReservedSeats));
   }
 
   [SqlServerFact]
-  public async Task ConcurrentSubmissionsCannotOverbookTheLastSeats()
+  public async Task ConcurrentUnpaidSubmissionsLeaveLastSeatsAvailable()
   {
     await SeedBookingTripAsync();
     await using var db = CreateDatabase();
@@ -61,20 +86,20 @@ public sealed partial class SqlServerDatabaseTests
     var responses = await Task.WhenAll(requests.Select(request => client.PostAsJsonAsync("/api/bus-bookings", request)));
     try
     {
-      Assert.Equal(3, responses.Count(x => x.StatusCode == HttpStatusCode.Created));
-      Assert.Equal(9, responses.Count(x => x.StatusCode == HttpStatusCode.Conflict));
+      Assert.Equal(12, responses.Count(x => x.StatusCode == HttpStatusCode.Created));
+      Assert.DoesNotContain(responses, x => x.StatusCode == HttpStatusCode.Conflict);
       var acceptedIndex = Array.FindIndex(responses, x => x.StatusCode == HttpStatusCode.Created);
       var receipt = (await responses[acceptedIndex].Content.ReadFromJsonAsync<BusBookingResponse>())!;
       using var retry = await client.PostAsJsonAsync("/api/bus-bookings", requests[acceptedIndex]);
       Assert.Equal(HttpStatusCode.OK, retry.StatusCode); Assert.Equal(receipt, await retry.Content.ReadFromJsonAsync<BusBookingResponse>());
-      await db.Entry(schedule).ReloadAsync(); Assert.Equal(0, schedule.AvailableSeats);
-      Assert.Equal(3, await db.BusBookings.CountAsync()); Assert.Equal(3, await db.BusBookings.SumAsync(x => x.ReservedSeats));
+      await db.Entry(schedule).ReloadAsync(); Assert.Equal(3, schedule.AvailableSeats);
+      Assert.Equal(12, await db.BusBookings.CountAsync()); Assert.Equal(0, await db.BusBookings.SumAsync(x => x.ReservedSeats));
     }
     finally { foreach (var response in responses) response.Dispose(); }
   }
 
   [SqlServerFact]
-  public async Task AFailedBookingInsertRollsBackTheSeatDecrement()
+  public async Task AFailedBookingInsertDoesNotChangeInventory()
   {
     await SeedBookingTripAsync();
     await using var db = CreateDatabase();
@@ -86,7 +111,7 @@ public sealed partial class SqlServerDatabaseTests
       ScheduledTripId = trip.Id, Reference = existing.Reference, CreatedAtUtc = DateTimeOffset.UtcNow,
       RequestHash = new string('B', 64), DetailsJson = "{}" };
     await Assert.ThrowsAsync<DbUpdateException>(() => new BusBookingRepository(db, TimeProvider.System)
-      .ReserveAndAddAsync(conflicting, trip, 2, default));
+      .AddSubmittedAsync(conflicting, trip, default));
     await using var verify = CreateDatabase();
     Assert.Equal(40, (await verify.ScheduledTrips.SingleAsync()).AvailableSeats);
     Assert.Equal(0, (await verify.BusBookings.SingleAsync()).ReservedSeats);

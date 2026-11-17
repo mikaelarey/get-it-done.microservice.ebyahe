@@ -66,7 +66,7 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
     await services!.InitializeInfrastructureAsync();
     Assert.Equal(applied, (await database.Database.GetAppliedMigrationsAsync()).ToArray());
     Assert.Empty(await database.Database.GetPendingMigrationsAsync());
-    Assert.Empty(await database.RefUsers.ToListAsync());
+    Assert.Empty(await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").ToListAsync());
     Assert.Empty(await database.Incoming.ToListAsync());
     Assert.Empty(await database.IncomingLogs.ToListAsync());
     Assert.Empty(await database.Outgoing.ToListAsync());
@@ -81,7 +81,7 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
       INSERT INTO [RefUsers] ([Id], [ExternalUserId], [FirstName], [LastName], [Email], [CreatedAtUtc])
       VALUES (NEWID(), N'user-1', N'Maria', N'Santos', N'Maria@example.com', SYSDATETIMEOFFSET());
       """);
-    var user = await database.RefUsers.SingleAsync();
+    var user = await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync();
     Assert.Equal("Get It Done", user.Provider);
     Assert.Equal("Normal", user.Role);
     Assert.NotEqual(Guid.Empty, user.Id);
@@ -155,7 +155,7 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
     database.ChangeTracker.Clear();
 
     var invalidStatus = await Assert.ThrowsAsync<SqlException>(() => database.Database.ExecuteSqlRawAsync(
-      "UPDATE [OutboxMessages] SET [Status] = 'Invalid'"));
+      "UPDATE [OutboxMessages] SET [CodeDecodeOutboxStatus] = 0"));
     Assert.Equal(547, invalidStatus.Number);
     var restrictedDelete = await Assert.ThrowsAsync<SqlException>(() => database.Database.ExecuteSqlRawAsync(
       "DELETE FROM [OutboxMessages]"));

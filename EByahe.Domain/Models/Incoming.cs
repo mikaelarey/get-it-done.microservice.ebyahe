@@ -11,7 +11,9 @@ public sealed class Incoming
   public long Offset { get; init; }
   public string? MessageKey { get; init; }
   public string? Payload { get; init; }
-  public string Status { get; set; } = "Received";
+  public int CodeDecodeIncomingStatus { get; set; } = 1;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Status { get => CodeDecodeValues.Decode("IncomingStatuses", CodeDecodeIncomingStatus); set => CodeDecodeIncomingStatus = CodeDecodeValues.Code("IncomingStatuses", value); }
   public DateTime ReceivedDateTime { get; init; }
   public DateTime RecordedDateTime { get; set; }
   public DateTime? ProcessedDateTime { get; set; }

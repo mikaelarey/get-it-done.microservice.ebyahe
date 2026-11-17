@@ -58,8 +58,10 @@ validated. The intake retains the checkout's illustrative add-on prices and 3%
 fee. The trip ID, directional metadata, stations and passenger fares must match
 the published database schedule from [the catalog API](bus-catalog.md). Use its
 returned fields rather than the illustrative IDs/dates in this example. Accepted
-details are saved as a snapshot, and one seat per passenger is reserved against
-the selected scheduled-trip ID. No payment is processed or ticket issued.
+details are saved as a snapshot. All submissions save with `reservedSeats: 0`, status `Submitted` and payment status
+`Pending Payment`. Seats are deducted only when a verified successful payment can
+atomically confirm the booking. Cancelled bookings cannot pay again. Submission itself does not charge a payment or issue a ticket.
+Online checkout and Kafka payment confirmation are described in [payments](payments.md).
 The persisted status is **Submitted**.
 
 `trip.tripId` must be a non-empty GUID returned by the catalog API. After the
@@ -71,7 +73,8 @@ an edited payload must use a new request key rather than replaying an old one.
 Allowed methods/providers: `card`/`Card`, `cash`/`Bus station`,
 `wallet`/`GCash` or `Maya`, `bank`/`BDO`, `BPI` or `Metrobank`. Card submissions
 carry only `cardholder`, `last4` and `expiry`. Full card numbers, CVVs and other
-unknown payment fields are rejected. No card processing or money transfer occurs.
+unknown payment fields are rejected. This endpoint does not process card details or transfer money;
+new online bookings use `method: "paymongo", provider: "PayMongo"` and continue through the Payment service.
 
 ## Response and retries
 
@@ -85,7 +88,7 @@ to its receipt. Example response (IDs and UTC timestamp are server-generated):
   "status": "Submitted",
   "createdAtUtc": "2026-11-06T03:00:00+00:00",
   "total": 772.5,
-  "reservedSeats": 1
+  "reservedSeats": 0
 }
 ```
 
@@ -96,7 +99,7 @@ replay) and create only one row. Reusing the key with different details returns
 needs a new key. Validation failures return **400**, unsupported media **415**,
 and requests over 64 KiB **413**.
 
-Seat reservation and booking persistence commit together. Concurrent requests
+For online bookings, seat reservation and booking persistence commit together. Cash bookings do not reserve seats or guarantee availability. Concurrent requests
 cannot overbook the remaining count, and retries do not reserve again. Insufficient
 seats or a changed/unavailable departure return **409** with `code: seats_unavailable`;
 the checkout offers a new search. No seats are taken when persistence fails.

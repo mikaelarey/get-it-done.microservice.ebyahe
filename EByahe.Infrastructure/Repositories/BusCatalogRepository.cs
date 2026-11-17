@@ -7,10 +7,10 @@ namespace EByahe.Infrastructure.Repositories;
 
 public sealed class BusCatalogRepository(EByaheDbContext db, TimeProvider clock) : IBusCatalogRepository
 {
-  private IQueryable<ScheduledTrip> Published()
+  private IQueryable<ScheduledTrip> Published(bool requireAvailableSeats = true)
   {
     var now = clock.GetUtcNow();
-    return db.ScheduledTrips.AsNoTracking().Where(x => x.DepartureAtUtc > now && x.Status == "Scheduled" && x.AvailableSeats > 0
+    return db.ScheduledTrips.AsNoTracking().Where(x => x.DepartureAtUtc > now && x.Status == "Scheduled" && (!requireAvailableSeats || x.AvailableSeats > 0)
       && x.Partner.Status == "Approved" && x.Bus.IsActive && x.BusRoute.IsActive
       && x.BusRoute.OriginTerminal.IsActive && x.BusRoute.DestinationTerminal.IsActive
       && x.BusRoute.OriginTerminal.Location.IsActive && x.BusRoute.DestinationTerminal.Location.IsActive);
@@ -38,4 +38,5 @@ public sealed class BusCatalogRepository(EByaheDbContext db, TimeProvider clock)
       .OrderBy(x => x.DepartureAtUtc).ThenBy(x => x.Id).Take(100).ToArrayAsync(ct);
   }
   public Task<ScheduledTrip?> GetAsync(Guid id, CancellationToken ct) => Details(Published()).SingleOrDefaultAsync(x => x.Id == id, ct);
+  public Task<ScheduledTrip?> GetForBookingAsync(Guid id, CancellationToken ct) => Details(Published(false)).SingleOrDefaultAsync(x => x.Id == id, ct);
 }

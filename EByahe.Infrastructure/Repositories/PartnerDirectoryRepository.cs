@@ -35,7 +35,7 @@ public sealed class PartnerDirectoryRepository(EByaheDbContext database) : IPart
       orderby booking.CreatedAtUtc descending, booking.Id descending
       select new PartnerBookingRecord(booking.Id, booking.Reference, trip.BusRoute.OriginTerminal.Location.Name,
         trip.BusRoute.DestinationTerminal.Location.Name, trip.DepartureAtUtc, trip.Bus.PlateNumber,
-        booking.ReservedSeats, booking.Total, booking.Status);
+        booking.ReservedSeats, booking.Total, booking.Status, booking.PaymentStatus, booking.PaymentType, booking.PaymentReviewRequired);
     return await ReadPageAsync(query, page, pageSize, cancellationToken);
   }
 

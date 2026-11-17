@@ -4,7 +4,9 @@ public sealed class PartnerApplication
 {
   public Guid Id { get; set; }
   public string TrackingId { get; set; } = string.Empty;
-  public string Status { get; set; } = "Submitted";
+  public int CodeDecodePartnerApplicationStatus { get; set; } = 1;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Status { get => CodeDecodeValues.Decode("PartnerApplicationStatuses", CodeDecodePartnerApplicationStatus); set => CodeDecodePartnerApplicationStatus = CodeDecodeValues.Code("PartnerApplicationStatuses", value); }
   // Null only for applications received before authenticated submissions were introduced.
   public string? CreatedBy { get; set; }
   public string BusinessCategory { get; set; } = string.Empty;

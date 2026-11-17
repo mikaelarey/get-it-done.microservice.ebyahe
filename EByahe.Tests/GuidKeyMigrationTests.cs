@@ -21,7 +21,7 @@ public sealed partial class SqlServerDatabaseTests
   }
 
   [SqlServerFact]
-  public async Task GuidMigrationPreservesRelationshipsReservationsSnapshotsAndExternalUserIds()
+  public async Task GuidMigrationPreservesRelationshipsSnapshotsAndReleasesUnpaidReservations()
   {
     await using var db = CreateDatabase();
     await ResetToMigrationAsync(db, "20261106075731_ReserveBookingSeats");
@@ -71,9 +71,9 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(bus.Id, trip.BusId); Assert.Equal(route.Id, trip.BusRouteId);
     Assert.Equal("Manila", terminals.Single(x => x.Id == route.OriginTerminalId).Location.Name);
     Assert.Equal("Baguio", terminals.Single(x => x.Id == route.DestinationTerminalId).Location.Name);
-    Assert.Equal(38, trip.AvailableSeats); Assert.Equal(departure, trip.DepartureAtUtc); Assert.Equal("TST-1234", bus.PlateNumber);
+    Assert.Equal(40, trip.AvailableSeats); Assert.Equal(departure, trip.DepartureAtUtc); Assert.Equal("TST-1234", bus.PlateNumber);
     var booking = await db.BusBookings.SingleAsync(x => x.Id == bookingId);
-    Assert.Equal(trip.Id, booking.ScheduledTripId); Assert.Equal(2, booking.ReservedSeats);
+    Assert.Equal(trip.Id, booking.ScheduledTripId); Assert.Equal(0, booking.ReservedSeats); Assert.Equal("Pending Payment", booking.PaymentStatus);
     Assert.Equal("BK-GUID-MIGRATION", booking.Reference); Assert.Equal(new string('A',64), booking.RequestHash);
     using var patched = JsonDocument.Parse(booking.DetailsJson);
     Assert.Equal(trip.Id, patched.RootElement.GetProperty("trip").GetProperty("tripId").GetGuid());
@@ -81,7 +81,7 @@ public sealed partial class SqlServerDatabaseTests
     var old = await db.BusBookings.SingleAsync(x => x.Id == historicalId);
     Assert.Null(old.ScheduledTripId); Assert.Equal(0, old.ReservedSeats);
     Assert.NotEqual(Guid.Empty, JsonNode.Parse(old.DetailsJson)!["trip"]!["tripId"]!.GetValue<Guid>());
-    var user = await db.RefUsers.SingleAsync(); Assert.NotEqual(Guid.Empty,user.Id);
+    var user = await db.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync(); Assert.NotEqual(Guid.Empty,user.Id);
     Assert.Equal("opaque-account-subject",user.ExternalUserId); Assert.Equal("opaque-account-subject",booking.CreatedBy);
     Assert.Equal(2, await db.Locations.CountAsync()); Assert.Equal(2, await db.BusTerminals.CountAsync());
     Assert.Equal(0, await db.Database.SqlQueryRaw<int>("""
@@ -89,7 +89,7 @@ public sealed partial class SqlServerDatabaseTests
       JOIN sys.index_columns ic ON ic.object_id=t.object_id AND ic.index_id=i.index_id
       JOIN sys.columns c ON c.object_id=t.object_id AND c.column_id=ic.column_id
       JOIN sys.types ty ON ty.user_type_id=c.user_type_id
-      WHERE t.name<>'__EFMigrationsHistory' AND ty.name<>'uniqueidentifier'
+      WHERE t.name NOT IN ('__EFMigrationsHistory','CodeDecodeBookingStatuses','CodeDecodePaymentStatuses','CodeDecodePaymentTypes') AND ty.name<>'uniqueidentifier'
       """).SingleAsync());
     Assert.Equal(0, await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.foreign_keys WHERE is_disabled=1 OR is_not_trusted=1").SingleAsync());
   }

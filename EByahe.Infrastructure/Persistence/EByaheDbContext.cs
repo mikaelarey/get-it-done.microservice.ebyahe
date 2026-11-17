@@ -10,6 +10,10 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
 {
   public DbSet<RefUser> RefUsers => Set<RefUser>();
   public DbSet<BusBooking> BusBookings => Set<BusBooking>();
+  public DbSet<BookingStatus> CodeDecodeBookingStatuses => Set<BookingStatus>();
+  public DbSet<PaymentStatus> CodeDecodePaymentStatuses => Set<PaymentStatus>();
+  public DbSet<PaymentType> CodeDecodePaymentTypes => Set<PaymentType>();
+  public DbSet<BusBookingStatusLog> BusBookingStatusLogs => Set<BusBookingStatusLog>();
   public DbSet<Partner> Partners => Set<Partner>();
   public DbSet<PartnerUser> PartnerUsers => Set<PartnerUser>();
   public DbSet<PartnerMemberRequest> PartnerMemberRequests => Set<PartnerMemberRequest>();
@@ -28,8 +32,13 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   public DbSet<PartnerApplicationHistory> PartnerApplicationHistories => Set<PartnerApplicationHistory>();
   public DbSet<PartnerApplicationApproval> PartnerApplicationApprovals => Set<PartnerApplicationApproval>();
 
-  protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+  protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.AddInterceptors(new CodeDecodeQueryInterceptor());
+
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+  {
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(EByaheDbContext).Assembly);
+    CodeDecodeModel.Configure(modelBuilder);
+  }
 
   public override int SaveChanges(bool acceptAllChangesOnSuccess)
   {
@@ -75,7 +84,7 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   private void EnsureAppendOnlyLogs()
   {
     if (ChangeTracker.Entries().Any(entry => entry.Entity is EByahe.Domain.Models.Outgoing or IncomingLog
-        or PartnerApplicationHistory or PartnerApplicationApproval
+        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog
       && entry.State is EntityState.Modified or EntityState.Deleted))
       throw new InvalidOperationException("Log and approval entries are append-only; add a new status entry instead.");
   }

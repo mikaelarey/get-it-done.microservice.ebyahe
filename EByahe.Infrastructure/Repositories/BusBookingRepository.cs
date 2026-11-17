@@ -9,6 +9,11 @@ namespace EByahe.Infrastructure.Repositories;
 
 public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider clock, IRecordChangePublisher? changes = null) : IBusBookingRepository
 {
+  public async Task<IReadOnlyList<BusBookingStatusLog>> HistoryAsync(Guid id, string userId, CancellationToken cancellationToken) =>
+    await database.BusBookingStatusLogs.AsNoTracking()
+      .Where(x => x.BookingId == id && database.BusBookings.Any(b => b.Id == id && b.CreatedBy == userId))
+      .OrderBy(x => x.ChangedAtUtc).ThenBy(x => x.Id).ToArrayAsync(cancellationToken);
+
   public Task<BusBooking?> GetForUserAsync(Guid id, string userId, CancellationToken cancellationToken) =>
     database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.Id == id && row.CreatedBy == userId, cancellationToken);
 
@@ -27,9 +32,9 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
   public Task<BusBooking?> GetForRequestAsync(Guid requestId, string userId, CancellationToken cancellationToken) =>
     database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.RequestId == requestId && row.CreatedBy == userId, cancellationToken);
 
-  public async Task<BusBooking> ReserveAndAddAsync(BusBooking booking, ScheduledTrip expectedTrip, int seats, CancellationToken cancellationToken)
+  public async Task<BusBooking> AddSubmittedAsync(BusBooking booking, ScheduledTrip expectedTrip, CancellationToken cancellationToken)
   {
-    if (seats is < 1 or > 20 || booking.ScheduledTripId != expectedTrip.Id)
+    if (booking.ReservedSeats != 0 || booking.Status != "Submitted" || booking.PaymentStatus != "Pending Payment" || booking.ScheduledTripId != expectedTrip.Id)
       throw new ArgumentException("A valid seat quantity and matching scheduled trip are required.");
     await using var transaction = await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, cancellationToken);
     // Serialize a customer's retries even when they target different trips. Hashing keeps the
@@ -51,20 +56,18 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
       .SingleOrDefaultAsync(cancellationToken);
     if (trip is null || !MatchesPublishedTrip(trip, expectedTrip))
       throw new SeatReservationException("This departure has changed or is no longer available. Please search again.");
-    if (trip.AvailableSeats is not { } available)
-      throw new SeatReservationException("Seat availability is not configured for this departure. Please choose another trip.");
-    available = Math.Min(available, trip.Bus.SeatCapacity);
-    if (available < seats)
-      throw new SeatReservationException("There are not enough seats remaining for this departure. Please search again.");
-
-    trip.AvailableSeats = available - seats;
-    booking.ReservedSeats = seats;
     database.BusBookings.Add(booking);
+    database.BusBookingStatusLogs.Add(new BusBookingStatusLog
+    {
+      BookingId = booking.Id, Status = booking.Status, PaymentStatus = booking.PaymentStatus,
+      PaymentType = booking.PaymentType, ChangedAtUtc = booking.CreatedAtUtc,
+      Remarks = "Booking submitted without reserving seats."
+    });
     try
     {
       await database.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
-      if (changes is not null) await changes.PublishAsync(["bookings", "scheduled-trips"], booking.CreatedBy, trip.PartnerId, cancellationToken);
+      if (changes is not null) await changes.PublishAsync(["bookings"], booking.CreatedBy, trip.PartnerId, cancellationToken);
       return booking;
     }
     catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })

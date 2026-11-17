@@ -69,6 +69,10 @@ public sealed partial class SqlServerDatabaseTests
     public string Token(string? subject = Subject, string audience = Audience, string issuer = Issuer,
       bool expired = false, bool trusted = true, string type = "Bearer", object? resourceAccess = null, object? realmAccess = null)
     {
+      // Signed test identities represent accounts already registered with the system.
+      if (trusted && !expired && audience == Audience && issuer == Issuer && type == "Bearer"
+        && !string.IsNullOrWhiteSpace(subject) && subject.Length <= 255 && subject == subject.Trim())
+        AuditActorFixture.Add(connectionString, subject);
       using var other = RSA.Create(2048);
       var claims = new List<Claim> { new("typ", type) };
       if (subject is not null) claims.Add(new Claim("sub", subject));
@@ -202,6 +206,7 @@ public sealed partial class SqlServerDatabaseTests
     application.CreatedBy = "another-user";
     await Assert.ThrowsAsync<InvalidOperationException>(() => database.SaveChangesAsync());
     database.ChangeTracker.Clear();
+    AuditActorFixture.Add(ConnectionString, "reviewer-subject");
     database.PartnerApplicationApprovals.Add(new PartnerApplicationApproval
     {
       Id = Guid.NewGuid(), PartnerApplicationId = application.Id, PreviousStatus = "Pending", Status = "UnderReview",

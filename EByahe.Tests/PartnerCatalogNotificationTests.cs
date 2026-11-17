@@ -15,7 +15,7 @@ public sealed partial class SqlServerDatabaseTests
   public async Task CatalogCreationQueuesOnlyActiveUsersOfTheSelectedPartnerAndNotOtherWorkspacesOrAdministrators()
   {
     var (partner, bus, origin, destination) = await SeedPartnerTripWorkspace(); await using var db = CreateDatabase();
-    var owner = await db.RefUsers.SingleAsync(user => user.ExternalUserId == PartnerApiFactory.Subject);
+    var owner = await db.RefUsers.Where(user => user.Provider != "System").SingleAsync(user => user.ExternalUserId == PartnerApiFactory.Subject);
     var colleague = MembershipUser("partner-colleague"); var inactive = MembershipUser("inactive-colleague"); var foreignUser = MembershipUser("foreign-partner-user");
     var foreign = new Partner { Code = "NOTIFICATION-FOREIGN", DisplayName = "Foreign partner" };
     db.PartnerUsers.AddRange(new PartnerUser { PartnerId = partner.Id, RefUser = colleague },

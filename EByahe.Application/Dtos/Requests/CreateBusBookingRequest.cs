@@ -54,10 +54,13 @@ public sealed class CreateBusBookingRequest : IValidatableObject
       {
         "card" => payment.Provider == "Card",
         "cash" => payment.Provider == "Bus station",
+        "paymongo" => payment.Provider == "PayMongo",
         "wallet" => payment.Provider is "GCash" or "Maya",
         "bank" => payment.Provider is "BDO" or "BPI" or "Metrobank",
         _ => false
       };
+      if (payment.Type == "Cash" && payment.Method != "cash" || payment.Method == "cash" && payment.Type is not (null or "Cash"))
+        yield return new("The payment type does not match the selected payment method.", ["Payment.Type"]);
       if (!validProvider) yield return new("Select a supported payment provider.", ["Payment.Provider"]);
       if (payment.Method == "card" && (string.IsNullOrWhiteSpace(payment.Cardholder) || string.IsNullOrWhiteSpace(payment.Last4) || string.IsNullOrWhiteSpace(payment.Expiry)))
         yield return new("Provide the cardholder, last four digits and expiry metadata.", [nameof(Payment)]);
@@ -115,7 +118,8 @@ public sealed class BusContactRequest
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class BusPaymentRequest
 {
-  [Required, RegularExpression(@"^(card|wallet|bank|cash)$")] public string Method { get; set; } = "";
+  [RegularExpression(@"^(GCash|Maya|Credit/Debit Card|Cash)$")] public string? Type { get; set; }
+  [Required, RegularExpression(@"^(card|wallet|bank|cash|paymongo)$")] public string Method { get; set; } = "";
   [Required, MaxLength(32)] public string Provider { get; set; } = "";
   [MaxLength(100)] public string? Cardholder { get; set; }
   [RegularExpression(@"^\d{4}$")] public string? Last4 { get; set; }

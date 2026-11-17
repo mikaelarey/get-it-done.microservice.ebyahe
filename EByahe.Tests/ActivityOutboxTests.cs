@@ -57,7 +57,7 @@ public sealed partial class SqlServerDatabaseTests
       foreach(var forbidden in new[]{"accountNumber","storageKey","payment","contact","passengers","Test Traveler"}) Assert.DoesNotContain(forbidden,message.Payload);
     });
     using var b=JsonDocument.Parse(booking.Payload); Assert.Equal("/booking-details?reference="+receipt.Reference,b.RootElement.GetProperty("link").GetString());
-    Assert.Equal(1,b.RootElement.GetProperty("details").GetProperty("reservedSeats").GetInt32());
+    Assert.Equal(0,b.RootElement.GetProperty("details").GetProperty("reservedSeats").GetInt32());
     using var p=JsonDocument.Parse(partner.Payload); Assert.Equal("/partner-application-details/"+application.Id,p.RootElement.GetProperty("link").GetString());
     Assert.Equal(2,await db.Outgoing.CountAsync());
   }
@@ -70,7 +70,7 @@ public sealed partial class SqlServerDatabaseTests
     var booking=new EByahe.Domain.Models.BusBooking {Id=Guid.NewGuid(),RequestId=Guid.NewGuid(),ScheduledTripId=trip.Id,CreatedBy="test-owner",
       Reference="BK-OUTBOX-ROLLBACK",CreatedAtUtc=DateTimeOffset.UtcNow,RequestHash=new string('A',64),DetailsJson="{}"};
     await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectActivity ON dbo.OutboxMessages AFTER INSERT AS THROW 51010,'Test failure',1;");
-    await Assert.ThrowsAsync<DbUpdateException>(()=>new EByahe.Infrastructure.Repositories.BusBookingRepository(db,TimeProvider.System).ReserveAndAddAsync(booking,trip,1,default));
+    await Assert.ThrowsAsync<DbUpdateException>(()=>new EByahe.Infrastructure.Repositories.BusBookingRepository(db,TimeProvider.System).AddSubmittedAsync(booking,trip,default));
     Assert.DoesNotContain(db.ChangeTracker.Entries(),x=>x.Entity is EByahe.Domain.Models.OutboxMessage or EByahe.Domain.Models.Outgoing);
     await using var verify=CreateDatabase(); Assert.Empty(await verify.OutboxMessages.ToArrayAsync()); Assert.Empty(await verify.BusBookings.ToArrayAsync());
     Assert.Equal(40,(await verify.ScheduledTrips.SingleAsync()).AvailableSeats);

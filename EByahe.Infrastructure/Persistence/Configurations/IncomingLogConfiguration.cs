@@ -9,10 +9,9 @@ public sealed class IncomingLogConfiguration : IEntityTypeConfiguration<Incoming
   public void Configure(EntityTypeBuilder<IncomingLog> builder)
   {
     builder.ToTable("IncomingLogs", table => table.HasCheckConstraint("CK_IncomingLogs_Status",
-      "[Status] IN ('Received', 'Processing', 'Processed', 'Failed', 'Acknowledged', 'AcknowledgementFailed')"));
+      "[CodeDecodeIncomingStatus] IN (1, 2, 3, 4, 5, 6)"));
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
-    builder.Property(row => row.Status).HasMaxLength(32).IsUnicode(false).IsRequired();
     builder.Property(row => row.Error).HasMaxLength(1000);
     builder.HasIndex(row => new { row.IncomingId, row.RecordedDateTime });
   }

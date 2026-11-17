@@ -131,7 +131,7 @@ public sealed partial class SqlServerDatabaseTests
     var receipt = (await response.Content.ReadFromJsonAsync<BusBookingResponse>())!;
     Assert.Matches("^BK-[A-F0-9]{32}$", receipt.Reference);
     Assert.Equal("Submitted", receipt.Status);
-    Assert.Equal(1, receipt.ReservedSeats);
+    Assert.Equal(0, receipt.ReservedSeats);
     Assert.Equal(772.5m, receipt.Total);
     await using var database = CreateDatabase();
     var saved = await database.BusBookings.SingleAsync();
@@ -171,7 +171,7 @@ public sealed partial class SqlServerDatabaseTests
       Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
       await using var database = CreateDatabase();
       Assert.Single(await database.BusBookings.ToListAsync());
-      Assert.Equal(39, (await database.ScheduledTrips.SingleAsync()).AvailableSeats);
+      Assert.Equal(40, (await database.ScheduledTrips.SingleAsync()).AvailableSeats);
     }
     finally { foreach (var response in responses) response.Dispose(); }
   }

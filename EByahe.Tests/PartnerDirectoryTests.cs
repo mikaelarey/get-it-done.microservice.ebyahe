@@ -123,9 +123,9 @@ public sealed partial class SqlServerDatabaseTests
     await using var db = CreateDatabase();
     var application = ReviewApplication("Original name", "hotel", "Approved", 1, "detail-owner");
     db.PartnerApplications.Add(application);
-    var owner = MembershipUser("detail-owner"); var member = MembershipUser("member");
+    var owner = await db.RefUsers.SingleAsync(x => x.ExternalUserId == "detail-owner"); owner.FirstName = "Partner"; owner.LastName = "Member"; owner.Provider = RefUser.ManualProvider; var member = MembershipUser("member");
     var inactive = MembershipUser("inactive"); var outsider = MembershipUser("outsider");
-    db.RefUsers.AddRange(owner, member, inactive, outsider);
+    db.RefUsers.AddRange(member, inactive, outsider);
     var partner = new Partner { Code = "PT-DETAIL", DisplayName = "Current name", Status = "Suspended",
       OwnerUserId = owner.ExternalUserId, PartnerApplicationId = application.Id };
     var other = new Partner { Code = "PT-OTHER", DisplayName = "Other partner" };
@@ -224,8 +224,10 @@ public sealed partial class SqlServerDatabaseTests
     static BusBooking Booking(Guid? trip, string booker, int seats) => new() {
       Id = Guid.NewGuid(), RequestId = Guid.NewGuid(), ScheduledTripId = trip, CreatedBy = booker,
       Reference = "BK-" + Guid.NewGuid().ToString("N"), CreatedAtUtc = DateTimeOffset.UtcNow,
+      Status = seats > 0 ? "Confirmed" : "Submitted", PaymentStatus = seats > 0 ? "Payment Success" : "Pending Payment",
       ReservedSeats = seats, RequestHash = new string('A', 64), DetailsJson = "{}"
     };
+    AuditActorFixture.Add(ConnectionString, "shared-booker", "another-booker");
     db.BusBookings.AddRange(Booking(first.Id, "shared-booker", 1), Booking(second.Id, "another-booker", 3),
       Booking(otherTrip.Id, "shared-booker", 1), Booking(null, "shared-booker", 0));
     await db.SaveChangesAsync();

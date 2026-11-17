@@ -32,7 +32,7 @@ public sealed partial class SqlServerDatabaseTests
     var created = saved.CreatedAtUtc;
     saved.IsActive = true; await db.SaveChangesAsync(); saved.IsActive = false; await db.SaveChangesAsync();
     Assert.Equal(4, await db.PartnerUsers.CountAsync()); Assert.Equal(created, saved.CreatedAtUtc);
-    Assert.All(await db.RefUsers.ToArrayAsync(), u => Assert.Equal(RefUser.NormalRole, u.Role));
+    Assert.All(await db.RefUsers.Where(user => user.Provider != "System").ToArrayAsync(), u => Assert.Equal(RefUser.NormalRole, u.Role));
     Assert.False(db.Database.HasPendingModelChanges());
   }
 
@@ -72,12 +72,14 @@ public sealed partial class SqlServerDatabaseTests
     db.RefUsers.AddRange(exact, different);
     var owned = new Partner { Code = "OWNED", DisplayName = "Owned", OwnerUserId = exact.ExternalUserId };
     var unowned = new Partner { Code = "UNOWNED", DisplayName = "Unowned" };
-    db.Partners.AddRange(owned, unowned); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+    await db.SaveChangesAsync();
+    await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [Partners] ([Id],[Code],[DisplayName],[OwnerUserId],[Status],[IsDemo]) VALUES ({owned.Id},{owned.Code},{owned.DisplayName},{owned.OwnerUserId},'Approved',0),({unowned.Id},{unowned.Code},{unowned.DisplayName},NULL,'Approved',0)");
+    db.ChangeTracker.Clear();
     await db.Database.MigrateAsync();
     var member = await db.PartnerUsers.SingleAsync();
     Assert.Equal(owned.Id, member.PartnerId); Assert.Equal(exact.Id, member.RefUserId); Assert.True(member.IsActive);
     Assert.Equal("OwnerCase", (await db.Partners.SingleAsync(x => x.Id == owned.Id)).OwnerUserId);
-    Assert.Equal(2, await db.RefUsers.CountAsync()); Assert.Equal(2, await db.Partners.CountAsync());
+    Assert.Equal(2, await db.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").CountAsync()); Assert.Equal(2, await db.Partners.CountAsync());
     await db.Database.MigrateAsync(); Assert.Equal(1, await db.PartnerUsers.CountAsync());
   }
 
@@ -87,10 +89,11 @@ public sealed partial class SqlServerDatabaseTests
     await using var db = CreateDatabase();
     await ResetToMigrationAsync(db, "20261106091705_ConvertApplicationKeysToGuids");
     var partner = new Partner { Code = "MISSING", DisplayName = "Missing reference", OwnerUserId = "missing-owner" };
-    db.Partners.Add(partner); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+    await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [Partners] ([Id],[Code],[DisplayName],[OwnerUserId],[Status],[IsDemo]) VALUES ({partner.Id},{partner.Code},{partner.DisplayName},{partner.OwnerUserId},'Approved',0)");
+    db.ChangeTracker.Clear();
     var failure = await Assert.ThrowsAsync<SqlException>(() => db.Database.MigrateAsync());
-    Assert.Equal(51030, failure.Number); Assert.Empty(await db.RefUsers.ToArrayAsync());
-    Assert.Equal(partner.Id, (await db.Partners.SingleAsync()).Id);
+    Assert.Equal(51030, failure.Number); Assert.Empty(await db.RefUsers.Where(user => user.Provider != "System").ToArrayAsync());
+    Assert.Equal(partner.Id, await db.Database.SqlQueryRaw<Guid>("SELECT [Id] AS [Value] FROM Partners").SingleAsync());
     Assert.Contains("20261106134748_AddPartnerUsers", await db.Database.GetPendingMigrationsAsync());
     db.RefUsers.Add(MembershipUser("missing-owner")); await db.SaveChangesAsync();
     await db.Database.MigrateAsync(); Assert.Equal(1, await db.PartnerUsers.CountAsync());

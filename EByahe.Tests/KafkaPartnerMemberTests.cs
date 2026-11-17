@@ -45,7 +45,7 @@ public sealed partial class SqlServerDatabaseTests
         await producer.ProduceAsync(topics[1], new Message<string, string> { Key = reply.Key!, Value = reply.Payload! });
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
         while (await db.IncomingLogs.CountAsync(x => x.Status == "Acknowledged", timeout.Token) < 3) await Task.Delay(100, timeout.Token);
-        Assert.Equal(2, await db.PartnerUsers.CountAsync()); Assert.Equal(2, await db.RefUsers.CountAsync());
+        Assert.Equal(2, await db.PartnerUsers.CountAsync()); Assert.Equal(2, await db.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").CountAsync());
         Assert.Equal("Completed", (await db.PartnerMemberRequests.AsNoTracking().SingleAsync()).Status);
         Assert.True((await db.TemporaryPasswords.AsNoTracking().SingleAsync()).CanReveal);
       }

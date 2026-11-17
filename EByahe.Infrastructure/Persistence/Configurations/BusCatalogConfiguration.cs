@@ -8,11 +8,10 @@ public sealed class PartnerConfiguration : IEntityTypeConfiguration<Partner>
 {
   public void Configure(EntityTypeBuilder<Partner> b)
   {
-    b.ToTable("Partners", t => t.HasCheckConstraint("CK_Partners_Status", "[Status] IN ('Approved', 'Suspended')"));
+    b.ToTable("Partners", t => t.HasCheckConstraint("CK_Partners_Status", "[CodeDecodePartnerStatus] IN (1, 2)"));
     b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
     b.Property(x => x.Code).HasMaxLength(64).IsRequired(); b.HasIndex(x => x.Code).IsUnique();
     b.Property(x => x.DisplayName).HasMaxLength(255).IsRequired();
-    b.Property(x => x.Status).HasMaxLength(32).IsRequired();
     b.Property(x => x.OwnerUserId).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2");
     b.HasOne<PartnerApplication>().WithMany().HasForeignKey(x => x.PartnerApplicationId).OnDelete(DeleteBehavior.Restrict);
     b.HasIndex(x => x.PartnerApplicationId).IsUnique().HasFilter("[PartnerApplicationId] IS NOT NULL");
@@ -76,15 +75,15 @@ public sealed class ScheduledTripConfiguration : IEntityTypeConfiguration<Schedu
     b.ToTable("ScheduledTrips", t => {
       t.HasCheckConstraint("CK_ScheduledTrips_Fare", "[BaseFare] > 0");
       t.HasCheckConstraint("CK_ScheduledTrips_AvailableSeats", "[AvailableSeats] IS NULL OR [AvailableSeats] BETWEEN 0 AND 100");
-      t.HasCheckConstraint("CK_ScheduledTrips_Status", "[Status] IN ('Scheduled', 'Cancelled')");
+      t.HasCheckConstraint("CK_ScheduledTrips_Status", "[CodeDecodeScheduledTripStatus] IN (1, 2)");
     });
-    b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.BaseFare).HasPrecision(18, 2); b.Property(x => x.Status).HasMaxLength(32).IsRequired();
+    b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.BaseFare).HasPrecision(18, 2);
     b.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
     b.HasOne(x => x.Bus).WithMany().HasForeignKey(x => new { x.BusId, x.PartnerId })
       .HasPrincipalKey(x => new { x.Id, x.PartnerId }).OnDelete(DeleteBehavior.Restrict);
     b.HasOne(x => x.BusRoute).WithMany().HasForeignKey(x => new { x.BusRouteId, x.PartnerId })
       .HasPrincipalKey(x => new { x.Id, x.PartnerId }).OnDelete(DeleteBehavior.Restrict);
     b.HasIndex(x => new { x.BusId, x.DepartureAtUtc }).IsUnique();
-    b.HasIndex(x => new { x.Status, x.DepartureAtUtc, x.BusRouteId });
+    b.HasIndex(x => new { x.CodeDecodeScheduledTripStatus, x.DepartureAtUtc, x.BusRouteId });
   }
 }

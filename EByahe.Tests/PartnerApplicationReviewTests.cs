@@ -16,8 +16,9 @@ public sealed partial class SqlServerDatabaseTests
     ["get-it-done-ebyahe-api"] = new { roles = review ? new[] { "partner.review" } : [] }
   };
 
-  private static PartnerApplication ReviewApplication(string name, string category, string status, int age, string creator)
+  private PartnerApplication ReviewApplication(string name, string category, string status, int age, string creator)
   {
+    AuditActorFixture.Add(ConnectionString, creator, "reviewer");
     var id = Guid.NewGuid();
     return new PartnerApplication
     {

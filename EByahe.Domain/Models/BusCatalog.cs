@@ -5,7 +5,9 @@ public sealed class Partner
   public Guid Id { get; set; } = Guid.NewGuid();
   public string Code { get; set; } = "";
   public string DisplayName { get; set; } = "";
-  public string Status { get; set; } = "Approved";
+  public int CodeDecodePartnerStatus { get; set; } = 1;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Status { get => CodeDecodeValues.Decode("PartnerStatuses", CodeDecodePartnerStatus); set => CodeDecodePartnerStatus = CodeDecodeValues.Code("PartnerStatuses", value); }
   public string? OwnerUserId { get; set; }
   public Guid? PartnerApplicationId { get; set; }
   public bool IsDemo { get; set; }
@@ -75,6 +77,8 @@ public sealed class ScheduledTrip
   public decimal BaseFare { get; set; }
   // Remaining seats for this departure. Null means inventory has not been configured.
   public int? AvailableSeats { get; set; }
-  public string Status { get; set; } = "Scheduled";
+  public int CodeDecodeScheduledTripStatus { get; set; } = 1;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Status { get => CodeDecodeValues.Decode("ScheduledTripStatuses", CodeDecodeScheduledTripStatus); set => CodeDecodeScheduledTripStatus = CodeDecodeValues.Code("ScheduledTripStatuses", value); }
   public bool IsDemo { get; set; }
 }

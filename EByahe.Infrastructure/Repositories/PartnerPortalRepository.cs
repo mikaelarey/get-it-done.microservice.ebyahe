@@ -66,6 +66,16 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
     return Page(query, page, pageSize, cancellationToken);
   }
 
+  public Task<PartnerPortalUserDetails?> UserDetailsAsync(string userId, Guid membershipId, CancellationToken cancellationToken)
+  {
+    var ids = PartnerIds(userId);
+    return database.PartnerUsers.AsNoTracking().Where(row => row.Id == membershipId && ids.Contains(row.PartnerId))
+      .Select(row => new PartnerPortalUserDetails(row.Id, row.RefUser.FirstName, row.RefUser.LastName,
+        row.RefUser.Email, row.Partner.DisplayName, row.IsActive, row.RefUser.Provider, row.CreatedAtUtc,
+        row.RefUser.CreatedAtUtc == default ? null : row.RefUser.CreatedAtUtc))
+      .SingleOrDefaultAsync(cancellationToken);
+  }
+
   private static async Task<PartnerRecordsPage<T>> Page<T>(IQueryable<T> query, int page, int pageSize, CancellationToken cancellationToken)
   {
     if (page is < 1 or > 1000000 || pageSize is < 1 or > 50) throw new ArgumentOutOfRangeException(nameof(page));

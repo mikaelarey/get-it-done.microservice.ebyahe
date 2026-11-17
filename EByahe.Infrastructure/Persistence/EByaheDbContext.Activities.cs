@@ -22,7 +22,7 @@ public sealed partial class EByaheDbContext
       var oldOwner = entry.State == EntityState.Added ? null : entry.Property(x => x.OwnerUserId).OriginalValue;
       if (partner.OwnerUserId is null && oldOwner is null) continue; // Unowned demo operators have no recipients.
       if (entry.State == EntityState.Modified && !entry.Property(x => x.OwnerUserId).IsModified
-        && !entry.Property(x => x.Status).IsModified) continue;
+        && !entry.Property(x => x.CodeDecodePartnerStatus).IsModified) continue;
       var created = entry.State == EntityState.Added;
       activities.Add(new ActivityEvent(Guid.NewGuid(), created ? "partner.created" : "partner.updated", 1,
         DateTimeOffset.UtcNow, "ebyahe", "system:ebyahe", created ? "Created a partner." : "Updated a partner.",

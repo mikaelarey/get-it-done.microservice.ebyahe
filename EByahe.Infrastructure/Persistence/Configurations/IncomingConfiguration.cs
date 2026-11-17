@@ -9,12 +9,11 @@ public sealed class IncomingConfiguration : IEntityTypeConfiguration<Incoming>
   public void Configure(EntityTypeBuilder<Incoming> builder)
   {
     builder.ToTable("Incoming", table => table.HasCheckConstraint("CK_Incoming_Status",
-      "[Status] IN ('Received', 'Processing', 'Processed', 'Failed')"));
+      "[CodeDecodeIncomingStatus] IN (1, 2, 3, 4)"));
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
     builder.Property(row => row.ConsumerGroup).HasMaxLength(200).IsUnicode(false).IsRequired();
     builder.Property(row => row.Topic).HasMaxLength(249).IsUnicode(false).IsRequired();
-    builder.Property(row => row.Status).HasMaxLength(32).IsUnicode(false).IsRequired();
     builder.Property(row => row.Error).HasMaxLength(1000);
     builder.HasIndex(row => new { row.ConsumerGroup, row.Topic, row.Partition, row.Offset }).IsUnique();
     builder.HasIndex(row => row.MessageId);

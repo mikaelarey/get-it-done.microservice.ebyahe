@@ -13,17 +13,16 @@ public sealed class PartnerApplicationConfiguration : IEntityTypeConfiguration<P
       table.HasCheckConstraint("CK_PartnerApplications_BusinessCategory", "[BusinessCategory] IN ('hotel', 'bus-operator')");
       table.HasCheckConstraint("CK_PartnerApplications_EntityType", "[EntityType] IN ('sole-proprietorship', 'partnership', 'corporation')");
       table.HasCheckConstraint("CK_PartnerApplications_SettlementFrequency", "[SettlementFrequency] IN ('daily', 'weekly')");
-      table.HasCheckConstraint("CK_PartnerApplications_Status", "[Status] IN ('Submitted', 'UnderReview', 'Approved', 'Rejected')");
+      table.HasCheckConstraint("CK_PartnerApplications_Status", "[CodeDecodePartnerApplicationStatus] IN (1, 2, 3, 4)");
     });
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
     builder.Property(row => row.TrackingId).HasMaxLength(36).IsUnicode(false).IsRequired();
     builder.HasIndex(row => row.TrackingId).IsUnique();
-    builder.Property(row => row.Status).HasMaxLength(32).IsUnicode(false).HasDefaultValue("Submitted").IsRequired();
     builder.Property(row => row.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2");
     builder.HasIndex(row => new { row.CreatedBy, row.SubmittedAtUtc });
     builder.HasIndex(row => row.CreatedBy).IsUnique().HasDatabaseName("UX_PartnerApplications_ActiveCreator")
-      .HasFilter("[CreatedBy] IS NOT NULL AND [Status] IN ('Submitted', 'UnderReview')");
+      .HasFilter("[CreatedBy] IS NOT NULL AND [CodeDecodePartnerApplicationStatus] IN (1, 2)");
     builder.Property(row => row.BusinessCategory).HasMaxLength(32).IsUnicode(false).IsRequired();
     builder.Property(row => row.BusinessName).HasMaxLength(255).IsRequired();
     builder.Property(row => row.TradeName).HasMaxLength(255).IsRequired();
@@ -37,7 +36,7 @@ public sealed class PartnerApplicationConfiguration : IEntityTypeConfiguration<P
     builder.Property(row => row.AccountNumber).HasMaxLength(64).IsRequired();
     builder.Property(row => row.AccountHolder).HasMaxLength(255).IsRequired();
     builder.Property(row => row.SettlementFrequency).HasMaxLength(16).IsUnicode(false).IsRequired();
-    builder.HasIndex(row => new { row.Status, row.SubmittedAtUtc });
+    builder.HasIndex(row => new { row.CodeDecodePartnerApplicationStatus, row.SubmittedAtUtc });
     builder.HasMany(row => row.Documents).WithOne().HasForeignKey(row => row.PartnerApplicationId)
       .OnDelete(DeleteBehavior.Restrict);
   }

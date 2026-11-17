@@ -5,7 +5,7 @@ namespace EByahe.Application.Dtos.Responses;
 
 public sealed record AdminBusBookingSummary(Guid Id, string Reference, string Status, DateTimeOffset CreatedAtUtc,
   string? Origin, string? Destination, string? Operator, string? PlateNumber, string? DepartureDate,
-  string? DepartureTime, int Passengers, int ReservedSeats, decimal Total)
+  string? DepartureTime, int Passengers, int ReservedSeats, decimal Total, string PaymentStatus, string? PaymentType, bool PaymentReviewRequired)
 {
   public static AdminBusBookingSummary From(BusBooking booking)
   {
@@ -17,7 +17,7 @@ public sealed record AdminBusBookingSummary(Guid Id, string Reference, string St
       && details.TryGetProperty("passengers", out var people) && people.ValueKind == JsonValueKind.Array
         ? people.GetArrayLength() : booking.ReservedSeats;
     return new(booking.Id, booking.Reference, booking.Status, booking.CreatedAtUtc, Text("origin"), Text("destination"),
-      Text("operator"), Text("plateNumber"), Text("departureDate"), Text("departureTime"), passengers, booking.ReservedSeats, booking.Total);
+      Text("operator"), Text("plateNumber"), Text("departureDate"), Text("departureTime"), passengers, booking.ReservedSeats, booking.Total, booking.PaymentStatus, booking.PaymentType, booking.PaymentReviewRequired);
   }
 }
 

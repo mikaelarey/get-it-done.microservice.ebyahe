@@ -66,7 +66,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(3, first.TotalCount); Assert.Equal(2, first.Items.Count); Assert.Equal(1, first.Page); Assert.Equal(2, first.PageSize);
     Assert.Equal(created.AsEnumerable().Reverse().Take(2).Select(row => row.Id), first.Items.Select(row => row.Id));
     Assert.All(first.Items, row => { Assert.Equal("Manila", row.Origin); Assert.Equal("Baguio", row.Destination);
-      Assert.Equal("Victory Liner", row.Operator); Assert.Equal(1, row.Passengers); Assert.Equal(1, row.ReservedSeats); });
+      Assert.Equal("Victory Liner", row.Operator); Assert.Equal(1, row.Passengers); Assert.Equal(0, row.ReservedSeats); });
     var second = (await client.GetFromJsonAsync<AdminBusBookingsResponse>(url + "?page=2&pageSize=2"))!;
     Assert.Equal(created[0].Id, Assert.Single(second.Items).Id);
     var filtered = (await client.GetFromJsonAsync<AdminBusBookingsResponse>(url + "?search=" + created[0].Reference + "&status=Submitted"))!;
@@ -91,6 +91,7 @@ public sealed partial class SqlServerDatabaseTests
     var member = MembershipUser("partner-member"); database.RefUsers.Add(member);
     var membership = new PartnerUser { PartnerId = trip.PartnerId, RefUserId = member.Id };
     database.PartnerUsers.Add(membership);
+    AuditActorFixture.Add(ConnectionString, "another-customer");
     var legacy = new BusBooking { Id = Guid.NewGuid(), RequestId = Guid.NewGuid(), CreatedBy = "another-customer", Reference = "BK-LEGACY-ADMIN",
       CreatedAtUtc = DateTimeOffset.UtcNow, RequestHash = new string('A', 64), DetailsJson = "{}", Total = 100m };
     database.BusBookings.Add(legacy); await database.SaveChangesAsync();

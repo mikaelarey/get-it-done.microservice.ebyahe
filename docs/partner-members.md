@@ -10,14 +10,24 @@ Members automatically receive web `partner` and `default-roles-<realm>`. For bus
 
 eByahe validates the reply's key, request hash, creator, partner, email, source and version before creating/reactivating the unique `PartnerUsers` membership and projecting a missing RefUser. If the inviter's membership is revoked or the partner suspended before completion, the request is cancelled and its temporary password removed. Replays do not duplicate users or memberships. Incoming/outgoing receipt histories retain encrypted request payloads and never plaintext passwords.
 
-## Temporary passwords
+## Member access and details
 
 `member.manage` is independent of `member.create`; both allow viewing the partner's
 users. Only `member.create` allows adding users, loading invitation workspaces or
 request history, and retrieving the creator's eligible temporary passwords.
+
+`GET /api/partner/users/{membershipId}` returns profile and membership details for
+the View Details modal. It accepts either member role and only finds memberships
+inside the viewer's active approved partner workspaces. Foreign, unavailable or
+revoked-workspace records return 404. The response includes names, email, sign-in
+provider, partner name, membership status and dates, without passwords or identity
+provider user IDs. It uses the membership GUID shown as the list row ID.
+
 The Add users and Manage users permissions are selectable independently for both
 bus and hotel partners. Newly approved owners receive both; legacy events do not
 gain either member permission automatically.
+
+## Temporary passwords
 
 New Keycloak identities receive a cryptographically random 10-character password containing uppercase, lowercase, a digit and punctuation, with `temporary=true` and required action `UPDATE_PASSWORD`. The existing email-verification policy is respected. No SMTP delivery is required for local onboarding. Existing users never have their password replaced.
 

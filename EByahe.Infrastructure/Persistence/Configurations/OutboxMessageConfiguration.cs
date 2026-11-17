@@ -9,7 +9,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
   public void Configure(EntityTypeBuilder<OutboxMessage> builder)
   {
     builder.ToTable("OutboxMessages", table => table.HasCheckConstraint("CK_OutboxMessages_Status",
-      "[Status] IN ('Pending', 'Publishing', 'Failed', 'Published')"));
+      "[CodeDecodeOutboxStatus] IN (1, 2, 3, 4)"));
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
     builder.Property(row => row.UserId).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").IsRequired();
@@ -17,8 +17,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
     builder.Property(row => row.Topic).HasMaxLength(249).IsUnicode(false).IsRequired();
     builder.Property(row => row.MessageKey).HasMaxLength(255).IsRequired();
     builder.Property(row => row.Payload).IsRequired();
-    builder.Property(row => row.Status).HasMaxLength(32).IsUnicode(false).IsRequired();
-    builder.HasIndex(row => new { row.Status, row.NextAttemptDateTime, row.CreatedDateTime });
+    builder.HasIndex(row => new { row.CodeDecodeOutboxStatus, row.NextAttemptDateTime, row.CreatedDateTime });
     builder.HasIndex(row => row.UserId);
     builder.HasMany(row => row.History).WithOne().HasForeignKey(row => row.MessageId).OnDelete(DeleteBehavior.Restrict);
   }

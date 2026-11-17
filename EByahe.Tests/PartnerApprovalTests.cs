@@ -42,7 +42,7 @@ public sealed partial class SqlServerDatabaseTests
       Assert.Equal(255, partner.DisplayName.Length);
       Assert.Equal("PT-" + receipt.Id.ToString("N").ToUpperInvariant(), partner.Code);
       var membership = Assert.Single(partner.UserMemberships); Assert.True(membership.IsActive);
-      Assert.Equal((await db.RefUsers.SingleAsync()).Id, membership.RefUserId);
+      Assert.Equal((await db.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync()).Id, membership.RefUserId);
       var messages = await db.OutboxMessages.Where(x => x.EventType == "partner.approved").ToArrayAsync();
       var message = Assert.Single(messages, x => JsonDocument.Parse(x.Payload).RootElement.GetProperty("partner").GetProperty("id").GetGuid() == partner.Id);
       Assert.Equal("get-it-done.ebyahe.partners.v1", message.Topic); Assert.Equal("Pending", message.Status);
@@ -61,7 +61,7 @@ public sealed partial class SqlServerDatabaseTests
   }
 
   [SqlServerFact]
-  public async Task ApprovalWaitsForTheExactCreatorReferenceAndDeclineCreatesNoPartner()
+  public async Task DeclineRetainsTheRegisteredCreatorAndCreatesNoPartner()
   {
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     using var form = ApplicationForm(); using var submitted = await client.PostAsync("/api/partner-applications", form);
@@ -69,15 +69,12 @@ public sealed partial class SqlServerDatabaseTests
     var url = $"/api/admin/partner-applications/{receipt.Id}";
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: "reviewer", resourceAccess: ReviewRoles()));
     using var started = await client.PostAsync(url + "/review", null); Assert.Equal(HttpStatusCode.OK, started.StatusCode);
-    using var blocked = await client.PostAsync(url + "/approve", null); Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
-    Assert.Contains("account synchronization", await blocked.Content.ReadAsStringAsync());
-    await using var db = CreateDatabase();
-    Assert.Equal("UnderReview", (await db.PartnerApplications.AsNoTracking().SingleAsync()).Status);
-    Assert.Empty(await db.Partners.ToArrayAsync()); Assert.Empty(await db.PartnerUsers.ToArrayAsync());
-    Assert.DoesNotContain(await db.OutboxMessages.ToArrayAsync(), x => x.EventType == "partner.approved");
     using var declined = await client.PostAsJsonAsync(url + "/decline", new { remarks = "Incomplete documents" });
     Assert.Equal(HttpStatusCode.OK, declined.StatusCode);
-    Assert.Empty(await db.Partners.ToArrayAsync()); Assert.DoesNotContain(await db.OutboxMessages.ToArrayAsync(), x => x.EventType == "partner.approved");
+    await using var db = CreateDatabase();
+    Assert.True(await db.RefUsers.AnyAsync(x => x.ExternalUserId == PartnerApiFactory.Subject));
+    Assert.Empty(await db.Partners.ToArrayAsync()); Assert.Empty(await db.PartnerUsers.ToArrayAsync());
+    Assert.DoesNotContain(await db.OutboxMessages.ToArrayAsync(), x => x.EventType == "partner.approved");
   }
 
   [SqlServerFact]

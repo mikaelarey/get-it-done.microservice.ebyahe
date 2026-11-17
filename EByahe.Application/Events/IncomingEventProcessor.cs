@@ -8,7 +8,7 @@ using EByahe.Domain.Repositories;
 namespace EByahe.Application.Events;
 
 public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventSettings settings, TimeProvider clock,
-  IPartnerMemberRepository? members = null)
+  IPartnerMemberRepository? members = null, IBookingPaymentRepository? payments = null)
 {
   private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -20,7 +20,23 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
     {
       try
       {
-        if (record.Topic == settings.PartnerMembersTopic)
+        if (record.Topic == settings.PaymentCompletedTopic)
+        {
+          var payment = JsonSerializer.Deserialize<PaymentCompletedEvent>(record.Payload ?? "", JsonOptions);
+          if (payment is null || payment.EventId == Guid.Empty || payment.PaymentId == Guid.Empty || payment.BookingId == Guid.Empty
+            || (payment.EventType is not ("payment.completed" or "payment.failed" or "payment.cancelled")) || payment.SchemaVersion != 1
+            || (payment.EventType == "payment.completed" ? payment.PaymentStatus != "Payment Success" : payment.PaymentStatus != (payment.EventType == "payment.cancelled" ? "Cancelled" : "Payment Failed"))
+            || payment.PaymentType is not (null or "GCash" or "Maya" or "Credit/Debit Card") || payment.OccurredAtUtc == default
+            || payment.Provider != "paymongo" || payment.Currency != "PHP" || payment.AmountCentavos < 100
+            || string.IsNullOrWhiteSpace(payment.OwnerId) || payment.OwnerId.Length > 255
+            || payment.BookingReference is not { Length: 35 } || !payment.BookingReference.StartsWith("BK-", StringComparison.Ordinal)
+            || payment.EventType != "payment.cancelled" && (payment.ProviderSessionId is not { Length: > 3 and <= 100 } || !payment.ProviderSessionId.StartsWith("cs_", StringComparison.Ordinal)
+              || payment.ProviderPaymentId is not { Length: > 4 and <= 100 } || !payment.ProviderPaymentId.StartsWith("pay_", StringComparison.Ordinal))
+            || record.Key != payment.BookingId.ToString()) throw new InvalidDataException("Invalid payment.completed v1 event.");
+          await (payments ?? throw new InvalidOperationException("Payment repository not configured."))
+            .CompleteAsync(id, payment, Now(), cancellationToken);
+        }
+        else if (record.Topic == settings.PartnerMembersTopic)
         {
           using var json = JsonDocument.Parse(record.Payload ?? "");
           var type = json.RootElement.GetProperty("eventType").GetString();
@@ -46,8 +62,8 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
       catch (Exception exception)
       {
         var error = exception is InvalidDataException or JsonException
-          ? "Invalid or unsupported user.registered v1 event."
-          : "User projection failed; the Kafka offset was not committed.";
+          ? "Invalid or unsupported incoming event."
+          : "Incoming event processing failed; the Kafka offset was not committed.";
         await incoming.FailAsync(id, error, Now(), cancellationToken);
         throw;
       }

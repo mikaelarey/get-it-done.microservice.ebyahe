@@ -43,13 +43,13 @@ public sealed partial class SqlServerDatabaseTests
         Assert.Equal("Processed", receipt.Status);
         Assert.Equal(record.Payload, receipt.Payload);
         Assert.Equal(3, database.IncomingLogs.Count());
-        Assert.Equal("Maria", database.RefUsers.Single().FirstName);
+        Assert.Equal("Maria", database.RefUsers.Where(user => user.Provider != "System").Single().FirstName);
       }
     };
     await ProcessAsync(consumer, record);
     await using var database = CreateDatabase();
     var incoming = await database.Incoming.SingleAsync();
-    var user = await database.RefUsers.SingleAsync();
+    var user = await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync();
     Assert.Equal(1, consumer.Commits);
     Assert.Equal("account-user", user.ExternalUserId);
     Assert.Equal(new DateTimeOffset(2026, 10, 31, 0, 0, 0, TimeSpan.Zero), user.CreatedAtUtc);
@@ -74,7 +74,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(2, incoming.AttemptCount);
     Assert.Equal(2, await database.IncomingLogs.CountAsync(row => row.Status == "Failed"));
     Assert.Equal(1, await database.IncomingLogs.CountAsync(row => row.Status == "Received"));
-    Assert.Empty(await database.RefUsers.ToListAsync());
+    Assert.Empty(await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").ToListAsync());
     Assert.Equal(0, consumer.Commits);
   }
 
@@ -95,12 +95,12 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Null((await database.Incoming.SingleAsync()).ProcessedDateTime);
     Assert.Equal(0, await database.IncomingLogs.CountAsync(row => row.Status == "Processed"));
     Assert.Equal(0, consumer.Commits);
-    Assert.Equal("other-user", (await database.RefUsers.SingleAsync()).ExternalUserId);
+    Assert.Equal("other-user", (await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync()).ExternalUserId);
 
-    await database.RefUsers.ExecuteDeleteAsync();
+    await database.RefUsers.Where(user => user.ExternalUserId == "other-user").ExecuteDeleteAsync();
     await ProcessAsync(consumer, record);
     database.ChangeTracker.Clear();
-    Assert.Equal("account-user", (await database.RefUsers.SingleAsync()).ExternalUserId);
+    Assert.Equal("account-user", (await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync()).ExternalUserId);
     Assert.Equal("Processed", (await database.Incoming.SingleAsync()).Status);
     Assert.Equal(2, (await database.Incoming.SingleAsync()).AttemptCount);
     Assert.Equal(1, consumer.Commits);
@@ -121,7 +121,7 @@ public sealed partial class SqlServerDatabaseTests
     await ProcessAsync(consumer, record);
     await ProcessAsync(consumer, record with { Offset = 1 });
     database.ChangeTracker.Clear();
-    Assert.Equal("Updated", (await database.RefUsers.SingleAsync()).FirstName);
+    Assert.Equal("Updated", (await database.RefUsers.Where(user => user.Provider != "System" && user.Provider != "Test audit").SingleAsync()).FirstName);
     Assert.Equal(2, await database.Incoming.CountAsync());
     Assert.All(await database.Incoming.ToListAsync(), row => Assert.Equal(1, row.AttemptCount));
     Assert.Equal(2, consumer.Commits);

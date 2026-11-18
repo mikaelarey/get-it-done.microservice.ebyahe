@@ -27,6 +27,13 @@ public sealed class PartnerPortalController(IPartnerPortalRepository portal) : C
     return Ok(new PartnerRecordsPage<AdminBusBookingSummary>(result.Items.Select(AdminBusBookingSummary.From).ToArray(), result.TotalCount, result.Page, result.PageSize));
   }
 
+  [HttpGet("bookings/{id:guid}"), Authorize(Policy = PartnerPortalAuthorization.ReadBookingsPolicy)]
+  public async Task<ActionResult<BusBookingDetailsResponse>> BookingDetails(Guid id, CancellationToken cancellationToken)
+  {
+    var booking = await portal.BookingDetailsAsync(UserId, id, cancellationToken);
+    return booking is null ? NotFound() : Ok(BusBookingDetailsResponse.From(booking));
+  }
+
   [HttpGet("terminals"), Authorize(Policy = PartnerPortalAuthorization.ReadTerminalsPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalTerminal>>> Terminals([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
     Ok(await portal.TerminalsAsync(UserId, query.Page, query.PageSize, cancellationToken));

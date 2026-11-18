@@ -6,6 +6,7 @@ using EByahe.Domain.Exceptions;
 using EByahe.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EByahe.Application.Services;
 
 namespace EByahe.Application.Controllers;
 
@@ -23,28 +24,53 @@ public sealed class PartnerBusesController(IPartnerBusRepository buses) : Contro
   public async Task<ActionResult<IReadOnlyList<PartnerBusWorkspace>>> Workspaces(CancellationToken cancellationToken) =>
     Ok(await buses.WorkspacesAsync(UserId, cancellationToken));
 
+  [HttpGet("classes")]
+  public async Task<ActionResult<IReadOnlyList<BusClassOption>>> Classes(CancellationToken cancellationToken) =>
+    Ok(await buses.ClassesAsync(cancellationToken));
+
+  [HttpGet("template"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
+  public async Task<IActionResult> Template(CancellationToken cancellationToken)
+  {
+    var classes = await buses.ClassesAsync(cancellationToken);
+    if (classes.Count == 0) return Problem(title: "Bus classes are not configured. Please try again later.", statusCode: StatusCodes.Status503ServiceUnavailable);
+    return File(BusExcelTemplate.Generate(classes), BusExcelTemplate.ContentType, BusExcelTemplate.FileName);
+  }
+
   [HttpPost, Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
   public async Task<ActionResult<PartnerPortalBus>> Add(AddPartnerBusRequest request, CancellationToken cancellationToken)
   {
-    if (request.PartnerId == Guid.Empty || string.IsNullOrWhiteSpace(request.FleetNumber) || string.IsNullOrWhiteSpace(request.BusClass)
-      || request.FleetNumber.Any(char.IsControl) || request.BusClass.Any(char.IsControl)) return BadRequest();
     try
     {
-      var bus = await buses.AddAsync(UserId, new(request.PartnerId, request.FleetNumber.Trim().ToUpperInvariant(),
-        request.PlateNumber.Trim().ToUpperInvariant(), request.BusClass.Trim(), request.SeatCapacity), cancellationToken);
+      var bus = await buses.AddAsync(UserId, request.ToCommand(), cancellationToken);
       return bus is null ? Forbid() : StatusCode(StatusCodes.Status201Created, bus);
     }
     catch (PartnerBusConflictException)
     { return Conflict(new ProblemDetails { Title = "A bus with this plate number or fleet number already exists." }); }
+    catch (PartnerBusClassValidationException)
+    { return BadRequest(new ProblemDetails { Title = "Select a registered bus class." }); }
+  }
+
+  [HttpPost("import"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
+  [RequestSizeLimit(6 * 1024 * 1024), RequestFormLimits(MultipartBodyLengthLimit = 6 * 1024 * 1024)]
+  public async Task<ActionResult<PartnerBusImportResult>> Import([FromForm] ImportPartnerBusesRequest request, CancellationToken cancellationToken)
+  {
+    if (request.PartnerId == Guid.Empty) return BadRequest(new PartnerBusImportResult(0, [new(0, "Partner", "Select a partner.")]));
+    if (!(await buses.WorkspacesAsync(UserId, cancellationToken)).Any(workspace => workspace.Id == request.PartnerId)) return Forbid();
+    var parsed = await BusExcelImport.ReadAsync(request.File, request.PartnerId, cancellationToken);
+    if (parsed.Errors.Count != 0) return BadRequest(new PartnerBusImportResult(0, parsed.Errors));
+    try
+    {
+      var result = await buses.ImportAsync(UserId, request.PartnerId, parsed.Rows, cancellationToken);
+      return result is null ? Forbid() : result.Errors.Any(error => error.Field == "Bus class") ? BadRequest(result)
+        : result.Errors.Count != 0 ? Conflict(result) : Ok(result);
+    }
+    catch (PartnerBusConflictException)
+    { return Conflict(new PartnerBusImportResult(0, [new(0, "File", "A fleet number or plate number now exists. Refresh your fleet and correct the file before importing again.")])); }
   }
 }
 
-public sealed class AddPartnerBusRequest
+public sealed class ImportPartnerBusesRequest
 {
   public Guid PartnerId { get; set; }
-  [Required, StringLength(64)] public string FleetNumber { get; set; } = "";
-  [Required, StringLength(20), RegularExpression(@"^[A-Za-z0-9]+(?:[ -][A-Za-z0-9]+)*$")]
-  public string PlateNumber { get; set; } = "";
-  [Required, StringLength(100)] public string BusClass { get; set; } = "";
-  [Range(1, 100)] public int SeatCapacity { get; set; }
+  [Required] public IFormFile File { get; set; } = null!;
 }

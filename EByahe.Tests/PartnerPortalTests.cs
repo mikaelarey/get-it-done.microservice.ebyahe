@@ -12,6 +12,69 @@ public sealed partial class SqlServerDatabaseTests
   private static object PartnerRoles() => new Dictionary<string, object> { ["get-it-done-web"] = new { roles = new[] { "partner" } }, ["get-it-done-ebyahe-api"] = new { roles = new[] { "booking.read", "terminal.read", "scheduled-trip.read", "member.create" } } };
 
   [SqlServerFact]
+  public async Task PartnerBookingDetailsUseActiveApprovedMembershipsAndKeepCustomerOwnershipChecks()
+  {
+    await SeedBookingTripAsync();
+    using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: "another-owner"));
+    using var created = await client.PostAsJsonAsync("/api/bus-bookings", BookingRequest());
+    Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+    var receipt = (await created.Content.ReadFromJsonAsync<BusBookingResponse>())!;
+    await using var db = CreateDatabase();
+    var trip = await db.ScheduledTrips.SingleAsync();
+    var member = MembershipUser("booking-partner-reader");
+    var membership = new PartnerUser { PartnerId = trip.PartnerId, RefUser = member };
+    db.PartnerUsers.Add(membership);
+    var foreign = new Partner { Code = "DETAILS-FOREIGN", DisplayName = "Other operator" };
+    var foreignTrip = new ScheduledTrip { Partner = foreign,
+      Bus = new Bus { Partner = foreign, FleetNumber = "FOREIGN", CodeDecodeBusClass = 2 },
+      BusRoute = new BusRoute { Partner = foreign, DurationMinutes = 60,
+        OriginTerminal = new BusTerminal { Partner = foreign, Name = "Foreign origin", Location = new Location { Code = "DETAILS-FROM", Name = "Foreign origin" } },
+        DestinationTerminal = new BusTerminal { Partner = foreign, Name = "Foreign destination", Location = new Location { Code = "DETAILS-TO", Name = "Foreign destination" } } },
+      DepartureAtUtc = trip.DepartureAtUtc, AvailableSeats = 20, BaseFare = 750 };
+    var foreignBooking = new BusBooking { Id = Guid.NewGuid(), RequestId = Guid.NewGuid(), Reference = "BK-FOREIGN-DETAILS",
+      CreatedBy = "another-owner", ScheduledTripId = foreignTrip.Id, DetailsJson = (await db.BusBookings.SingleAsync()).DetailsJson,
+      RequestHash = new string('B', 64), CreatedAtUtc = DateTimeOffset.UtcNow, Total = receipt.Total };
+    db.ScheduledTrips.Add(foreignTrip); db.BusBookings.Add(foreignBooking); await db.SaveChangesAsync();
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: member.ExternalUserId, resourceAccess: BusRoles("booking.read")));
+    var path = $"/api/partner/bookings/{receipt.Id}";
+    using var response = await client.GetAsync(path);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode); Assert.True(response.Headers.CacheControl!.NoStore);
+    var details = (await response.Content.ReadFromJsonAsync<BusBookingDetailsResponse>())!;
+    Assert.Equal(receipt.Id, details.Id); Assert.Equal(receipt.Reference, details.Reference);
+    Assert.Equal("Test Traveler", Assert.Single(details.Booking.Passengers).FullName);
+    Assert.Equal("booker@example.com", details.Booking.Contact.Email);
+    Assert.Equal("TST-1234", details.Trip.PlateNumber); Assert.Equal(receipt.Total, details.Fare.Total);
+    Assert.Equal("Submitted", details.Status); Assert.Equal("Pending Payment", details.PaymentStatus); Assert.Equal(0, details.ReservedSeats);
+    var json = await response.Content.ReadAsStringAsync();
+    foreach (var field in new[] { "createdBy", "requestHash", "requestId", "detailsJson" }) Assert.DoesNotContain(field, json);
+    Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/bus-bookings/{receipt.Id}")).StatusCode);
+    Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/partner/bookings/{foreignBooking.Id}?partnerId={foreign.Id}&userId=another-owner")).StatusCode);
+    Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/partner/bookings/{Guid.NewGuid()}")).StatusCode);
+    membership.IsActive = false; await db.SaveChangesAsync();
+    Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path)).StatusCode);
+    membership.IsActive = true; var partner = await db.Partners.FindAsync(trip.PartnerId); partner!.Status = "Suspended"; await db.SaveChangesAsync();
+    Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path)).StatusCode);
+    Assert.Equal(40, (await db.ScheduledTrips.AsNoTracking().SingleAsync(row => row.Id == trip.Id)).AvailableSeats);
+  }
+
+  [SqlServerFact]
+  public async Task PartnerBookingDetailsRequirePartnerAndBookingReadRoles()
+  {
+    using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    var path = $"/api/partner/bookings/{Guid.NewGuid()}";
+    client.DefaultRequestHeaders.Authorization = null;
+    Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path)).StatusCode);
+    foreach (var roles in new[] { ReviewRoles(), BookingRoles(), BusRoles("member.manage"), BusRoles("bus.read") })
+    {
+      client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: roles));
+      Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path)).StatusCode);
+    }
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("booking.read")));
+    Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(path)).StatusCode);
+  }
+
+  [SqlServerFact]
   public async Task BookingReadDoesNotAllowUserOrBusRecords()
   {
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
@@ -71,7 +134,7 @@ public sealed partial class SqlServerDatabaseTests
     var foreign = new Partner { Code = "FOREIGN-PORTAL", DisplayName = "Foreign operator" };
     var origin = new BusTerminal { Partner = foreign, Location = new Location { Code = "PORTAL-FROM", Name = "Hidden origin" }, Name = "Hidden terminal" };
     var destination = new BusTerminal { Partner = foreign, Location = new Location { Code = "PORTAL-TO", Name = "Hidden destination" }, Name = "Hidden destination terminal" };
-    var foreignTrip = new ScheduledTrip { Partner = foreign, Bus = new Bus { Partner = foreign, FleetNumber = "HIDDEN", BusClass = "Hidden class" },
+    var foreignTrip = new ScheduledTrip { Partner = foreign, Bus = new Bus { Partner = foreign, FleetNumber = "HIDDEN", CodeDecodeBusClass = 2 },
       BusRoute = new BusRoute { Partner = foreign, OriginTerminal = origin, DestinationTerminal = destination, DurationMinutes = 60 }, DepartureAtUtc = first.DepartureAtUtc, AvailableSeats = 20, BaseFare = 100 };
     db.ScheduledTrips.AddRange(second, foreignTrip);
     db.PartnerUsers.Add(new PartnerUser { Partner = foreign, RefUserId = colleague.Id });

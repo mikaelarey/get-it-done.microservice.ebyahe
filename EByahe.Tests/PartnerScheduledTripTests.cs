@@ -11,7 +11,7 @@ public sealed partial class SqlServerDatabaseTests
   private async Task<(Partner Partner, Bus Bus, BusTerminal Origin, BusTerminal Destination)> SeedPartnerTripWorkspace()
   {
     var partner = await SeedMemberPartner(); await using var db = CreateDatabase();
-    var bus = new Bus { PartnerId = partner.Id, FleetNumber = "TRIP-BUS", PlateNumber = "TRP-0001", BusClass = "Deluxe", SeatCapacity = 40 };
+    var bus = new Bus { PartnerId = partner.Id, FleetNumber = "TRIP-BUS", PlateNumber = "TRP-0001", CodeDecodeBusClass = 2, SeatCapacity = 40 };
     var origin = new BusTerminal { PartnerId = partner.Id, Name = "Origin terminal", Address = "First street", Location = new Location { Code = "TRIP-ORIGIN", Name = "Origin city" } };
     var destination = new BusTerminal { PartnerId = partner.Id, Name = "Destination terminal", Address = "Second street", Location = new Location { Code = "TRIP-DESTINATION", Name = "Destination city" } };
     db.Buses.Add(bus); db.BusTerminals.AddRange(origin, destination); await db.SaveChangesAsync(); return (partner, bus, origin, destination);
@@ -47,8 +47,8 @@ public sealed partial class SqlServerDatabaseTests
   {
     var (partner, bus, origin, destination) = await SeedPartnerTripWorkspace(); await using var db = CreateDatabase();
     var foreign = new Partner { Code = "FOREIGN-TRIP", DisplayName = "Foreign operator" };
-    var foreignBus = new Bus { Partner = foreign, FleetNumber = "FOREIGN-BUS", BusClass = "Hidden" };
-    var inactiveBus = new Bus { PartnerId = partner.Id, FleetNumber = "INACTIVE-BUS", BusClass = "Hidden", IsActive = false };
+    var foreignBus = new Bus { Partner = foreign, FleetNumber = "FOREIGN-BUS", CodeDecodeBusClass = 2 };
+    var inactiveBus = new Bus { PartnerId = partner.Id, FleetNumber = "INACTIVE-BUS", CodeDecodeBusClass = 2, IsActive = false };
     var foreignTerminal = new BusTerminal { Partner = foreign, LocationId = origin.LocationId, Name = "Foreign terminal", Address = "Hidden" };
     var inactiveTerminal = new BusTerminal { PartnerId = partner.Id, LocationId = origin.LocationId, Name = "Inactive terminal", Address = "Hidden", IsActive = false };
     db.Buses.AddRange(foreignBus, inactiveBus); db.BusTerminals.AddRange(foreignTerminal, inactiveTerminal); await db.SaveChangesAsync();

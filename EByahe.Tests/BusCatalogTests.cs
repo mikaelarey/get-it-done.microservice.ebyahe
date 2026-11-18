@@ -18,7 +18,7 @@ public sealed partial class SqlServerDatabaseTests
     var origin = new BusTerminal { Partner = partner, Location = new Location { Code = "MNL", Name = "Manila" }, Name = "Manila Bus Station" };
     var destination = new BusTerminal { Partner = partner, Location = new Location { Code = "BAG", Name = "Baguio" }, Name = "Baguio Bus Station" };
     var route = new BusRoute { Partner = partner, OriginTerminal = origin, DestinationTerminal = destination, DurationMinutes = 360 };
-    var bus = new Bus { Partner = partner, FleetNumber = "TEST-1", PlateNumber = "TST-1234", BusClass = "Deluxe", SeatCapacity = 40 };
+    var bus = new Bus { Partner = partner, FleetNumber = "TEST-1", PlateNumber = "TST-1234", CodeDecodeBusClass = 2, SeatCapacity = 40 };
     var request = BookingRequest();
     db.ScheduledTrips.Add(new ScheduledTrip { Id = TestTripId, Partner = partner, Bus = bus, BusRoute = route, BaseFare = 750, AvailableSeats = 40,
       DepartureAtUtc = DateTimeOffset.Parse($"{request.Trip.DepartureDate}T06:00:00+08:00").ToUniversalTime() });

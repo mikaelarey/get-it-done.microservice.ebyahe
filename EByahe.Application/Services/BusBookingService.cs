@@ -81,10 +81,10 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
   }
 
   public async Task<BusBookingDetailsResponse?> GetAsync(Guid id, string userId, CancellationToken cancellationToken) =>
-    await bookings.GetForUserAsync(id, userId, cancellationToken) is { } booking ? Details(booking) : null;
+    await bookings.GetForUserAsync(id, userId, cancellationToken) is { } booking ? BusBookingDetailsResponse.From(booking) : null;
 
   public async Task<BusBookingDetailsResponse?> GetByReferenceAsync(string reference, string userId, CancellationToken cancellationToken) =>
-    await bookings.GetByReferenceForUserAsync(reference, userId, cancellationToken) is { } booking ? Details(booking) : null;
+    await bookings.GetByReferenceForUserAsync(reference, userId, cancellationToken) is { } booking ? BusBookingDetailsResponse.From(booking) : null;
 
   public async Task<BusBookingPage> ListAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
   {
@@ -100,13 +100,6 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
   private static CreateBusBookingRequest Snapshot(BusBooking booking) =>
     JsonSerializer.Deserialize<CreateBusBookingRequest>(booking.DetailsJson, new JsonSerializerOptions(JsonSerializerDefaults.Web))
       ?? throw new InvalidOperationException("The saved booking snapshot is unavailable.");
-
-  private static BusBookingDetailsResponse Details(BusBooking booking)
-  {
-    var snapshot = Snapshot(booking);
-    return new(booking.Id, booking.Reference, booking.Status, booking.CreatedAtUtc, booking.Total,
-      snapshot.Trip, snapshot.Booking, snapshot.Payment, snapshot.Fare, booking.ReservedSeats, booking.PaymentStatus, booking.PaymentType, booking.PaymentReviewRequired);
-  }
 
   private static BusBookingResponse Existing(BusBooking booking, string hash) => booking.RequestHash == hash
     ? Response(booking) : throw new BookingRequestConflictException();

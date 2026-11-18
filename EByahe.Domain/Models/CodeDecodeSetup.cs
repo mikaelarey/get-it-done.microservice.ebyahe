@@ -103,6 +103,7 @@ public static class CodeDecodeValues
 {
   public static readonly IReadOnlyDictionary<string, string[]> Values = new Dictionary<string, string[]>
   {
+    ["BusClasses"] = ["First Class", "Deluxe", "Super Deluxe", "Luxury", "Executive Class", "Executive Luxury", "Executive Solo", "Regular Aircon", "Regular / Air-conditioned", "Air-conditioned / Direct"],
     ["OutboxStatuses"] = ["Pending", "Publishing", "Failed", "Published"],
     ["OutgoingStatuses"] = ["Pending", "Publishing", "Failed", "Published", "LeaseExpired"],
     ["IncomingStatuses"] = ["Received", "Processing", "Processed", "Failed", "Acknowledged", "AcknowledgementFailed"],

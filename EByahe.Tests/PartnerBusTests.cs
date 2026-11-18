@@ -39,7 +39,7 @@ public sealed partial class SqlServerDatabaseTests
   {
     var partner = await SeedMemberPartner(); await using var db = CreateDatabase();
     var foreign = new Partner { Code = "FOREIGN-BUS", DisplayName = "Foreign operator" };
-    db.Buses.Add(new Bus { Partner = foreign, FleetNumber = "HIDDEN", PlateNumber = "HID-0001", BusClass = "Hidden class" });
+    db.Buses.Add(new Bus { Partner = foreign, FleetNumber = "HIDDEN", PlateNumber = "HID-0001", CodeDecodeBusClass = 2 });
     await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("bus.read", "bus.write")));

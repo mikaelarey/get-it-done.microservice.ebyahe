@@ -32,6 +32,9 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
   public Task<PartnerRecordsPage<BusBooking>> BookingsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken) =>
     Page(Bookings(userId).OrderByDescending(row => row.CreatedAtUtc).ThenBy(row => row.Id), page, pageSize, cancellationToken);
 
+  public Task<BusBooking?> BookingDetailsAsync(string userId, Guid bookingId, CancellationToken cancellationToken) =>
+    Bookings(userId).SingleOrDefaultAsync(row => row.Id == bookingId, cancellationToken);
+
   public Task<PartnerRecordsPage<PartnerPortalTerminal>> TerminalsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
   {
     var ids = PartnerIds(userId);
@@ -45,7 +48,7 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
     var ids = PartnerIds(userId);
     var query = database.ScheduledTrips.AsNoTracking().Where(row => ids.Contains(row.PartnerId)).OrderByDescending(row => row.DepartureAtUtc).ThenBy(row => row.Id)
       .Select(row => new PartnerPortalTrip(row.Id, row.BusRoute.OriginTerminal.Location.Name, row.BusRoute.DestinationTerminal.Location.Name,
-        row.Partner.DisplayName, row.Bus.PlateNumber, row.Bus.BusClass, row.DepartureAtUtc, row.AvailableSeats, row.BaseFare, row.Status));
+        row.Partner.DisplayName, row.Bus.PlateNumber, row.Bus.BusClass.Decode, row.DepartureAtUtc, row.AvailableSeats, row.BaseFare, row.Status));
     return Page(query, page, pageSize, cancellationToken);
   }
 

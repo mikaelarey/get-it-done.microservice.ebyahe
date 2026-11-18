@@ -362,6 +362,7 @@ Tables in this service:
 - `CodeDecodePartnerApplicationApprovalStatuses`
 - `CodeDecodePartnerStatuses`
 - `CodeDecodeScheduledTripStatuses`
+- `CodeDecodeBusClasses`
 - `CodeDecodePartnerMemberRequestStatuses`
 
 Audit fields (`CreatedBy`, `UpdatedBy`, `ChangedBy`, `ChangedById` when present)

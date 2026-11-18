@@ -64,7 +64,7 @@ public sealed partial class SqlServerDatabaseTests
       new PartnerApplicationApproval { Id = Guid.NewGuid(), PartnerApplicationId = hotel.Id, Status = "Approved", ChangedBy = "reviewer", DateTimeCreated = joined.AddDays(1) },
       new PartnerApplicationApproval { Id = Guid.NewGuid(), PartnerApplicationId = bus.Id, Status = "Approved", ChangedBy = "reviewer", DateTimeCreated = joined });
     var location = new Location { Code = "DIRECTORY-MANILA", Name = "Manila" }; db.Locations.Add(location);
-    db.Buses.Add(new Bus { PartnerId = demo.Id, FleetNumber = "BUS-1", BusClass = "First Class" });
+    db.Buses.Add(new Bus { PartnerId = demo.Id, FleetNumber = "BUS-1", CodeDecodeBusClass = 1 });
     db.BusTerminals.Add(new BusTerminal { PartnerId = demo.Id, LocationId = location.Id, Name = "Demo terminal", Address = "Terminal street" });
     await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
@@ -134,9 +134,9 @@ public sealed partial class SqlServerDatabaseTests
       new PartnerUser { PartnerId = partner.Id, RefUserId = member.Id },
       new PartnerUser { PartnerId = partner.Id, RefUserId = inactive.Id, IsActive = false },
       new PartnerUser { PartnerId = other.Id, RefUserId = outsider.Id });
-    db.Buses.AddRange(new Bus { PartnerId = partner.Id, FleetNumber = "FLEET-1", BusClass = "Standard" },
-      new Bus { PartnerId = partner.Id, FleetNumber = "FLEET-2", BusClass = "Standard", IsActive = false },
-      new Bus { PartnerId = other.Id, FleetNumber = "OTHER-1", BusClass = "Standard" });
+    db.Buses.AddRange(new Bus { PartnerId = partner.Id, FleetNumber = "FLEET-1", CodeDecodeBusClass = 8 },
+      new Bus { PartnerId = partner.Id, FleetNumber = "FLEET-2", CodeDecodeBusClass = 8, IsActive = false },
+      new Bus { PartnerId = other.Id, FleetNumber = "OTHER-1", CodeDecodeBusClass = 8 });
     var location = new Location { Code = "DETAIL-LOCATION", Name = "Manila" }; db.Locations.Add(location);
     db.BusTerminals.AddRange(new BusTerminal { PartnerId = partner.Id, LocationId = location.Id, Name = "Main terminal" },
       new BusTerminal { PartnerId = other.Id, LocationId = location.Id, Name = "Other terminal" });
@@ -217,7 +217,7 @@ public sealed partial class SqlServerDatabaseTests
     var origin = new BusTerminal { Partner = other, Location = new Location { Code = "OTHER-FROM", Name = "Other origin" }, Name = "Origin terminal" };
     var destination = new BusTerminal { Partner = other, Location = new Location { Code = "OTHER-TO", Name = "Other destination" }, Name = "Destination terminal" };
     var otherTrip = new ScheduledTrip { Partner = other,
-      Bus = new Bus { Partner = other, FleetNumber = "OTHER-1", BusClass = "Standard" },
+      Bus = new Bus { Partner = other, FleetNumber = "OTHER-1", CodeDecodeBusClass = 8 },
       BusRoute = new BusRoute { Partner = other, OriginTerminal = origin, DestinationTerminal = destination, DurationMinutes = 60 },
       DepartureAtUtc = first.DepartureAtUtc, BaseFare = 100, AvailableSeats = 40 };
     db.ScheduledTrips.AddRange(second, otherTrip);

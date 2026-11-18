@@ -44,7 +44,8 @@ public sealed class Bus
   public Partner Partner { get; set; } = null!;
   public string FleetNumber { get; set; } = "";
   public string? PlateNumber { get; set; }
-  public string BusClass { get; set; } = "";
+  public int CodeDecodeBusClass { get; set; }
+  public CodeDecodeBusClass BusClass { get; set; } = null!;
   public int SeatCapacity { get; set; } = 40;
   public bool IsActive { get; set; } = true;
   public bool IsDemo { get; set; }

@@ -16,7 +16,7 @@ public sealed class BusCatalogRepository(EByaheDbContext db, TimeProvider clock)
       && x.BusRoute.OriginTerminal.Location.IsActive && x.BusRoute.DestinationTerminal.Location.IsActive);
   }
   private static IQueryable<ScheduledTrip> Details(IQueryable<ScheduledTrip> query) => query
-    .Include(x => x.Partner).Include(x => x.Bus)
+    .Include(x => x.Partner).Include(x => x.Bus).ThenInclude(x => x.BusClass)
     .Include(x => x.BusRoute).ThenInclude(x => x.OriginTerminal).ThenInclude(x => x.Location)
     .Include(x => x.BusRoute).ThenInclude(x => x.DestinationTerminal).ThenInclude(x => x.Location);
 

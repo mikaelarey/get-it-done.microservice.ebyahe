@@ -25,7 +25,7 @@ public sealed class PartnerScheduledTripRepository(EByaheDbContext db, TimeProvi
       .Select(partner => new PartnerTripWorkspace(partner.Id, partner.DisplayName)).ToArrayAsync(cancellationToken);
     var buses = await db.Buses.AsNoTracking().Where(bus => ids.Contains(bus.PartnerId) && bus.IsActive)
       .OrderBy(bus => bus.FleetNumber).ThenBy(bus => bus.Id)
-      .Select(bus => new PartnerTripBus(bus.Id, bus.PartnerId, bus.FleetNumber, bus.PlateNumber, bus.BusClass, bus.SeatCapacity)).ToArrayAsync(cancellationToken);
+      .Select(bus => new PartnerTripBus(bus.Id, bus.PartnerId, bus.FleetNumber, bus.PlateNumber, bus.BusClass.Decode, bus.SeatCapacity)).ToArrayAsync(cancellationToken);
     var terminals = await db.BusTerminals.AsNoTracking().Where(terminal => ids.Contains(terminal.PartnerId) && terminal.IsActive && terminal.Location.IsActive)
       .OrderBy(terminal => terminal.Location.Name).ThenBy(terminal => terminal.Name).ThenBy(terminal => terminal.Id)
       .Select(terminal => new PartnerTripTerminal(terminal.Id, terminal.PartnerId, terminal.Name, terminal.Location.Name)).ToArrayAsync(cancellationToken);
@@ -46,7 +46,7 @@ public sealed class PartnerScheduledTripRepository(EByaheDbContext db, TimeProvi
     if (partner is null) return null;
     var departure = command.DepartureAtUtc.ToUniversalTime();
     if (departure <= clock.GetUtcNow()) throw new PartnerScheduledTripValidationException("Choose a future departure date and time.");
-    var bus = await db.Buses.SingleOrDefaultAsync(bus => bus.Id == command.BusId && bus.PartnerId == partner.Id && bus.IsActive, cancellationToken);
+    var bus = await db.Buses.Include(bus => bus.BusClass).SingleOrDefaultAsync(bus => bus.Id == command.BusId && bus.PartnerId == partner.Id && bus.IsActive, cancellationToken);
     if (bus is null) throw new PartnerScheduledTripValidationException("Select an active bus belonging to this partner.");
     var terminals = await db.BusTerminals.Include(terminal => terminal.Location).Where(terminal => terminal.PartnerId == partner.Id
       && terminal.IsActive && terminal.Location.IsActive && (terminal.Id == command.OriginTerminalId || terminal.Id == command.DestinationTerminalId))
@@ -78,6 +78,6 @@ public sealed class PartnerScheduledTripRepository(EByaheDbContext db, TimeProvi
     { throw new PartnerScheduledTripConflictException(); }
     if (changes is not null) await changes.PublishAsync(["scheduled-trips"], userId, partner.Id, cancellationToken);
     return new(trip.Id, origin.Location.Name, destination.Location.Name, partner.DisplayName, bus.PlateNumber,
-      bus.BusClass, trip.DepartureAtUtc, trip.AvailableSeats, trip.BaseFare, trip.Status);
+      bus.BusClass.Decode, trip.DepartureAtUtc, trip.AvailableSeats, trip.BaseFare, trip.Status);
   }
 }

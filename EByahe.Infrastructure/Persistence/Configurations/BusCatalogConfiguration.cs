@@ -44,11 +44,13 @@ public sealed class BusConfiguration : IEntityTypeConfiguration<Bus>
   {
     b.ToTable("Buses", t => t.HasCheckConstraint("CK_Buses_Capacity", "[SeatCapacity] BETWEEN 1 AND 100"));
     b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever(); b.HasAlternateKey(x => new { x.Id, x.PartnerId });
-    b.Property(x => x.FleetNumber).HasMaxLength(64).IsRequired(); b.Property(x => x.BusClass).HasMaxLength(100).IsRequired();
+    b.Property(x => x.FleetNumber).HasMaxLength(64).IsRequired();
+    b.HasOne(x => x.BusClass).WithMany().HasForeignKey(x => x.CodeDecodeBusClass).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
     b.Property(x => x.PlateNumber).HasMaxLength(20).IsUnicode(false);
     b.HasIndex(x => x.PlateNumber).IsUnique().HasFilter("[PlateNumber] IS NOT NULL");
     b.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
     b.HasIndex(x => new { x.PartnerId, x.FleetNumber }).IsUnique();
+    b.HasIndex(x => new { x.PartnerId, x.FleetNumber, x.PlateNumber }).IsUnique().HasFilter(null);
   }
 }
 public sealed class BusRouteConfiguration : IEntityTypeConfiguration<BusRoute>

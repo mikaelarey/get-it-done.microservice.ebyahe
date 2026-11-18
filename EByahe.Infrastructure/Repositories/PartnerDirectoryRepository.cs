@@ -12,7 +12,7 @@ public sealed class PartnerDirectoryRepository(EByaheDbContext database) : IPart
     ValidatePaging(page, pageSize);
     if (!await database.Partners.AnyAsync(x => x.Id == id, cancellationToken)) return null;
     var query = database.Buses.AsNoTracking().Where(x => x.PartnerId == id).OrderBy(x => x.FleetNumber).ThenBy(x => x.Id)
-      .Select(x => new PartnerBusRecord(x.Id, x.FleetNumber, x.PlateNumber, x.BusClass, x.SeatCapacity, x.IsActive));
+      .Select(x => new PartnerBusRecord(x.Id, x.FleetNumber, x.PlateNumber, x.BusClass.Decode, x.SeatCapacity, x.IsActive));
     return await ReadPageAsync(query, page, pageSize, cancellationToken);
   }
 

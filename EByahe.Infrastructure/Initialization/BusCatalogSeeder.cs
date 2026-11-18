@@ -65,7 +65,7 @@ public sealed class BusCatalogSeeder(EByaheDbContext db, TimeProvider clock)
         var bus = buses.SingleOrDefault(x => x.PartnerId == partner.Id && x.FleetNumber == fleetNumber);
         if (bus is null)
         {
-          bus = new Bus { PartnerId = partner.Id, FleetNumber = fleetNumber, BusClass = option.Class, SeatCapacity = 40, IsDemo = true };
+          bus = new Bus { PartnerId = partner.Id, FleetNumber = fleetNumber, CodeDecodeBusClass = CodeDecodeValues.Code("BusClasses", option.Class), SeatCapacity = 40, IsDemo = true };
           db.Buses.Add(bus); buses.Add(bus); await db.SaveChangesAsync(ct);
         }
         if (string.IsNullOrWhiteSpace(bus.PlateNumber))

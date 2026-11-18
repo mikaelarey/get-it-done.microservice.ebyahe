@@ -7,6 +7,9 @@ public static class PartnerPortalAuthorization
   public const string Policy = "AccessPartnerPortal";
   public const string CreateMembersPolicy = "CreatePartnerMembers";
   public const string ReadMembersPolicy = "ReadPartnerMembers";
+  public const string ManageMembersPolicy = "ManagePartnerMembers";
+  public static bool CanManageMembers(ClaimsPrincipal user) => HasAccess(user)
+    && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "member.manage");
   public const string ReadBusesPolicy = "ReadPartnerBuses";
   public const string WriteBusesPolicy = "WritePartnerBuses";
   public static bool CanReadBuses(ClaimsPrincipal user) => HasAccess(user)

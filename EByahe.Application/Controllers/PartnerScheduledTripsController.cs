@@ -8,16 +8,40 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EByahe.Application.Controllers;
 
-[ApiController, Route("api/partner/scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.WriteScheduledTripsPolicy)]
+[ApiController, Route("api/partner/scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.ReadScheduledTripsPolicy)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class PartnerScheduledTripsController(IPartnerScheduledTripRepository trips) : ControllerBase
 {
   private string UserId => User.FindFirst("sub")!.Value;
-  [HttpGet("options")]
+  [HttpGet("options"), Authorize(Policy = PartnerPortalAuthorization.WriteScheduledTripsPolicy)]
   public async Task<ActionResult<PartnerTripOptions>> Options(CancellationToken cancellationToken) =>
     Ok(await trips.OptionsAsync(UserId, cancellationToken));
 
-  [HttpPost]
+  [HttpGet("{id:guid}")]
+  public async Task<ActionResult<PartnerScheduledTripDetails>> Details(Guid id, CancellationToken cancellationToken)
+  {
+    var trip = await trips.DetailsAsync(UserId, id, cancellationToken);
+    return trip is null ? NotFound() : Ok(trip);
+  }
+
+  [HttpPut("{id:guid}"), Authorize(Policy = PartnerPortalAuthorization.WriteScheduledTripsPolicy)]
+  public async Task<ActionResult<PartnerPortalTrip>> Update(Guid id, UpdatePartnerScheduledTripRequest request, CancellationToken cancellationToken)
+  {
+    if (request.BusId == Guid.Empty || request.OriginTerminalId == Guid.Empty || request.DestinationTerminalId == Guid.Empty
+      || request.OriginTerminalId == request.DestinationTerminalId
+      || request.DepartureAtUtc > DateTimeOffset.MaxValue.AddMinutes(-request.DurationMinutes)
+      || decimal.Round(request.BaseFare, 2) != request.BaseFare) return BadRequest();
+    try
+    {
+      var trip = await trips.UpdateAsync(UserId, id, new(request.BusId, request.OriginTerminalId, request.DestinationTerminalId,
+        request.DepartureAtUtc, request.DurationMinutes, request.BaseFare), cancellationToken);
+      return trip is null ? NotFound() : Ok(trip);
+    }
+    catch (PartnerScheduledTripConflictException error) { return Conflict(new ProblemDetails { Title = error.Message }); }
+    catch (PartnerScheduledTripValidationException error) { return BadRequest(new ProblemDetails { Title = error.Message }); }
+  }
+
+  [HttpPost, Authorize(Policy = PartnerPortalAuthorization.WriteScheduledTripsPolicy)]
   public async Task<ActionResult<PartnerPortalTrip>> Add(AddPartnerScheduledTripRequest request, CancellationToken cancellationToken)
   {
     if (request.PartnerId == Guid.Empty || request.BusId == Guid.Empty || request.OriginTerminalId == Guid.Empty
@@ -35,6 +59,16 @@ public sealed class PartnerScheduledTripsController(IPartnerScheduledTripReposit
     catch (PartnerScheduledTripValidationException error)
     { return BadRequest(new ProblemDetails { Title = error.Message }); }
   }
+}
+
+public sealed class UpdatePartnerScheduledTripRequest
+{
+  public Guid BusId { get; set; }
+  public Guid OriginTerminalId { get; set; }
+  public Guid DestinationTerminalId { get; set; }
+  public DateTimeOffset DepartureAtUtc { get; set; }
+  [Range(1, 2880)] public int DurationMinutes { get; set; }
+  [Range(typeof(decimal), "0.01", "1000000")] public decimal BaseFare { get; set; }
 }
 
 public sealed class AddPartnerScheduledTripRequest

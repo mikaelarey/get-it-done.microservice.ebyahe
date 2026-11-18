@@ -19,7 +19,8 @@ public sealed class CodeDecodeSchemaTests
         Assert.Contains(entity.GetKeys(), key => key.Properties.SequenceEqual(new[] { code }));
       }
       foreach (var property in entity.GetProperties().Where(x => x.Name.StartsWith("CodeDecode")))
-        Assert.Contains(entity.GetForeignKeys(), fk => fk.Properties.Contains(property) && fk.PrincipalKey.Properties.Single().Name == "Code");
+        Assert.Contains(entity.GetForeignKeys(), fk => fk.Properties.Zip(fk.PrincipalKey.Properties)
+          .Any(pair => pair.First == property && pair.Second.Name == "Code"));
       foreach (var property in entity.GetProperties().Where(x => x.Name is "CreatedBy" or "UpdatedBy" or "ChangedBy" or "ChangedById"))
         Assert.Contains(entity.GetForeignKeys(), fk => fk.Properties.Contains(property) && fk.PrincipalEntityType.GetTableName() == "RefUsers");
     }
@@ -42,9 +43,17 @@ public sealed class CodeDecodeSchemaTests
         Assert.Matches("^CodeDecode[A-Za-z]+$", table);
         var identity = await db.Database.SqlQueryRaw<int>($"SELECT CONVERT(int, COLUMNPROPERTY(OBJECT_ID('[{table}]'), 'Code', 'IsIdentity')) AS [Value]").SingleAsync();
         Assert.Equal(1, identity);
-        Assert.Equal(1, await db.Database.SqlQueryRaw<int>($"SELECT COUNT(*) AS [Value] FROM sys.indexes i JOIN sys.index_columns ic ON i.object_id=ic.object_id AND i.index_id=ic.index_id JOIN sys.columns c ON c.object_id=ic.object_id AND c.column_id=ic.column_id WHERE i.object_id=OBJECT_ID('[{table}]') AND i.is_unique=1 AND c.name='Code'").SingleAsync());
+        Assert.Equal(1, await db.Database.SqlQueryRaw<int>($"SELECT COUNT(*) AS [Value] FROM sys.indexes i JOIN sys.index_columns ic ON i.object_id=ic.object_id AND i.index_id=ic.index_id JOIN sys.columns c ON c.object_id=ic.object_id AND c.column_id=ic.column_id WHERE i.object_id=OBJECT_ID('[{table}]') AND i.is_unique=1 AND c.name='Code' AND NOT EXISTS (SELECT 1 FROM sys.index_columns extra WHERE extra.object_id=i.object_id AND extra.index_id=i.index_id AND extra.key_ordinal>1)").SingleAsync());
         var previous = await db.Database.SqlQueryRaw<int>($"SELECT MAX([Code]) AS [Value] FROM [{table}]").SingleAsync();
-        await db.Database.ExecuteSqlRawAsync($"INSERT INTO [{table}] ([Id], [Decode]) VALUES (NEWID(), 'Schema test')");
+        var parentColumn = table switch {
+          "CodeDecodeProvinces" => "CodeDecodeRegion",
+          "CodeDecodeMunicipalities" => "CodeDecodeProvince",
+          "CodeDecodeBarangays" => "CodeDecodeMunicipality",
+          _ => null
+        };
+        var extraColumn = parentColumn is not null ? $", [{parentColumn}]" : table == "CodeDecodeRegions" ? ", [Description]" : "";
+        var extraValue = parentColumn is not null ? ", 1" : table == "CodeDecodeRegions" ? ", N'Schema test region'" : "";
+        await db.Database.ExecuteSqlRawAsync($"INSERT INTO [{table}] ([Id], [Decode]{extraColumn}) VALUES (NEWID(), 'Schema test'{extraValue})");
         Assert.True(await db.Database.SqlQueryRaw<int>($"SELECT [Code] AS [Value] FROM [{table}] WHERE [Decode]='Schema test'").SingleAsync() > previous);
         var invalid = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlRawAsync($"UPDATE [{table}] SET [CreatedBy]=N'not-a-registered-user' WHERE [Decode]='Schema test'"));
         Assert.Equal(547, invalid.Number);

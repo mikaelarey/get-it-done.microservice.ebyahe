@@ -1,4 +1,5 @@
 using EByahe.Domain.DataModels;
+using EByahe.Domain.Models;
 using EByahe.Domain.Repositories;
 using EByahe.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,11 @@ public sealed class PartnerDirectoryRepository(EByaheDbContext database) : IPart
     ValidatePaging(page, pageSize);
     if (!await database.Partners.AnyAsync(x => x.Id == id, cancellationToken)) return null;
     var query = database.BusTerminals.AsNoTracking().Where(x => x.PartnerId == id).OrderBy(x => x.Name).ThenBy(x => x.Id)
-      .Select(x => new PartnerTerminalRecord(x.Id, x.Name, x.Location.Name, x.Address, x.IsActive));
+      .Select(x => new PartnerTerminalRecord(x.Id, x.Name, x.Location.Name,
+        TerminalAddress.Format(x.Address, x.Location.Barangay == null ? null : x.Location.Barangay.Decode,
+          x.Location.Municipality == null ? null : x.Location.Municipality.Decode,
+          x.Location.Province == null ? null : x.Location.Province.Decode,
+          x.Location.Region == null ? null : x.Location.Region.Decode), x.IsActive));
     return await ReadPageAsync(query, page, pageSize, cancellationToken);
   }
 

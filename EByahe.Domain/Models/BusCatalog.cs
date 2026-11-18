@@ -20,6 +20,14 @@ public sealed class Location
   public string Code { get; set; } = "";
   public string Name { get; set; } = "";
   public string CountryCode { get; set; } = "PH";
+  public int? CodeDecodeRegion { get; set; }
+  public CodeDecodeRegion? Region { get; set; }
+  public int? CodeDecodeProvince { get; set; }
+  public CodeDecodeProvince? Province { get; set; }
+  public int? CodeDecodeMunicipality { get; set; }
+  public CodeDecodeMunicipality? Municipality { get; set; }
+  public int? CodeDecodeBarangay { get; set; }
+  public CodeDecodeBarangay? Barangay { get; set; }
   public bool IsActive { get; set; } = true;
   public bool IsDemo { get; set; }
 }

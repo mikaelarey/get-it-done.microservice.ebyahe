@@ -7,14 +7,35 @@ using EByahe.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EByahe.Application.Services;
+using EByahe.Domain.Models;
 
 namespace EByahe.Application.Controllers;
 
 [ApiController, Route("api/partner/buses"), Authorize(Policy = PartnerPortalAuthorization.ReadBusesPolicy)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class PartnerBusesController(IPartnerBusRepository buses) : ControllerBase
+public sealed class PartnerBusesController(IPartnerBusRepository buses, IUploadRepository uploads) : ControllerBase
 {
   private string UserId => User.FindFirst("sub")!.Value;
+
+  [HttpGet("{id:guid}"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
+  public async Task<ActionResult<PartnerBusForUpdate>> GetForUpdate(Guid id, CancellationToken cancellationToken) =>
+    await buses.GetForUpdateAsync(UserId, id, cancellationToken) is { } bus ? Ok(bus) : NotFound();
+
+  [HttpPut("{id:guid}"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
+  public async Task<ActionResult<PartnerPortalBus>> Update(Guid id, UpdatePartnerBusRequest request, CancellationToken cancellationToken)
+  {
+    try
+    {
+      var bus = await buses.UpdateAsync(UserId, id, request.ToCommand(), cancellationToken);
+      return bus is null ? NotFound() : Ok(bus);
+    }
+    catch (PartnerBusConflictException)
+    { return Conflict(new ProblemDetails { Title = "A bus with this plate number or fleet number already exists." }); }
+    catch (PartnerBusClassValidationException)
+    { return BadRequest(new ProblemDetails { Title = "Select a registered bus class." }); }
+    catch (PartnerBusCapacityConflictException)
+    { return Conflict(new ProblemDetails { Title = "Seat capacity cannot be changed while this bus has upcoming scheduled trips." }); }
+  }
 
   [HttpGet]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalBus>>> List([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
@@ -56,11 +77,12 @@ public sealed class PartnerBusesController(IPartnerBusRepository buses) : Contro
   {
     if (request.PartnerId == Guid.Empty) return BadRequest(new PartnerBusImportResult(0, [new(0, "Partner", "Select a partner.")]));
     if (!(await buses.WorkspacesAsync(UserId, cancellationToken)).Any(workspace => workspace.Id == request.PartnerId)) return Forbid();
+    var uploadId = await uploads.AddAsync(UserId, UploadTypeCodes.Buses, cancellationToken);
     var parsed = await BusExcelImport.ReadAsync(request.File, request.PartnerId, cancellationToken);
     if (parsed.Errors.Count != 0) return BadRequest(new PartnerBusImportResult(0, parsed.Errors));
     try
     {
-      var result = await buses.ImportAsync(UserId, request.PartnerId, parsed.Rows, cancellationToken);
+      var result = await buses.ImportAsync(UserId, request.PartnerId, parsed.Rows, uploadId, cancellationToken);
       return result is null ? Forbid() : result.Errors.Any(error => error.Field == "Bus class") ? BadRequest(result)
         : result.Errors.Count != 0 ? Conflict(result) : Ok(result);
     }

@@ -78,6 +78,9 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(payment.ProviderPaymentId, saved.ProviderPaymentId); Assert.Equal(1, saved.ReservedSeats);
     Assert.Equal(2, consumer.Commits); Assert.Equal(1, replay.Commits); Assert.Equal(2, await db.Incoming.CountAsync());
     Assert.Equal(39, (await db.ScheduledTrips.SingleAsync()).AvailableSeats);
+    var log = Assert.Single(await db.ScheduledTripLogs.ToArrayAsync()); Assert.Equal("Updated", log.Action); Assert.Equal(PartnerApiFactory.Subject, log.CreatedBy);
+    using var previousTrip = JsonDocument.Parse(log.PreviousValue!); using var currentTrip = JsonDocument.Parse(log.CurrentValue);
+    Assert.Equal(40, previousTrip.RootElement.GetProperty("availableSeats").GetInt32()); Assert.Equal(39, currentTrip.RootElement.GetProperty("availableSeats").GetInt32());
   }
   [SqlServerFact]
   public async Task MismatchedAmountsAndOwnersNeverConfirmOrAcknowledgePayment()

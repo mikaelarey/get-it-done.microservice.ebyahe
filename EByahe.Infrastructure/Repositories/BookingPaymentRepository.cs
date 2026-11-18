@@ -60,7 +60,9 @@ public sealed class BookingPaymentRepository(EByaheDbContext database) : IBookin
         if (trip is not null && trip.Status == "Scheduled" && trip.DepartureAtUtc > new DateTimeOffset(now, TimeSpan.Zero)
           && trip.AvailableSeats is { } available && Math.Min(available, trip.Bus.SeatCapacity) >= passengers)
         {
+          var previousTrip = CatalogAudit.Snapshot(trip);
           trip.AvailableSeats = Math.Min(available, trip.Bus.SeatCapacity) - passengers;
+          CatalogAudit.Record(database, trip, booking.CreatedBy, "Updated", previousTrip);
           booking.ReservedSeats = passengers;
           booking.Status = "Confirmed";
           note = "Payment success verified; booking confirmed and seats reserved atomically.";

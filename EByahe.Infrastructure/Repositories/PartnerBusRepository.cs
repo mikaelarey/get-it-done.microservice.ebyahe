@@ -47,8 +47,9 @@ public sealed class PartnerBusRepository(EByaheDbContext db, IOptions<KafkaOptio
     var busClass = await db.CodeDecodeBusClasses.SingleOrDefaultAsync(row => row.Decode == command.BusClass, cancellationToken)
       ?? throw new PartnerBusClassValidationException();
     var bus = new Bus { PartnerId = partner.Id, FleetNumber = command.FleetNumber, PlateNumber = command.PlateNumber,
-      BusClass = busClass, SeatCapacity = command.SeatCapacity };
+      BusClass = busClass, CodeDecodeBusClass = busClass.Code, SeatCapacity = command.SeatCapacity };
     db.Buses.Add(bus);
+    CatalogAudit.Record(db, bus, userId, "Created");
     await PartnerCatalogActivityOutbox.QueueAsync(db, partner.Id, userId, "bus.created", bus.Id,
       kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
     try { await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
@@ -58,12 +59,49 @@ public sealed class PartnerBusRepository(EByaheDbContext db, IOptions<KafkaOptio
     return new(bus.Id, partner.Id, partner.DisplayName, bus.FleetNumber, bus.PlateNumber, bus.BusClass.Decode, bus.SeatCapacity, bus.IsActive);
   }
 
-  public async Task<PartnerBusImportResult?> ImportAsync(string userId, Guid partnerId, IReadOnlyList<PartnerBusImportRow> rows, CancellationToken cancellationToken)
+  public Task<PartnerBusForUpdate?> GetForUpdateAsync(string userId, Guid id, CancellationToken cancellationToken)
+  {
+    var ids = BusOperators(userId).Select(partner => partner.Id); var now = DateTimeOffset.UtcNow;
+    return db.Buses.AsNoTracking().Where(bus => bus.Id == id && ids.Contains(bus.PartnerId))
+      .Select(bus => new PartnerBusForUpdate(bus.Id, bus.PartnerId, bus.Partner.DisplayName, bus.FleetNumber, bus.PlateNumber,
+        bus.BusClass.Decode, bus.SeatCapacity, bus.IsActive,
+        db.ScheduledTrips.Any(trip => trip.BusId == bus.Id && trip.Status == "Scheduled" && trip.DepartureAtUtc > now)))
+      .SingleOrDefaultAsync(cancellationToken);
+  }
+
+  public async Task<PartnerPortalBus?> UpdateAsync(string userId, Guid id, UpdatePartnerBus command, CancellationToken cancellationToken)
+  {
+    await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    var ids = BusOperators(userId).Select(partner => partner.Id);
+    var bus = await db.Buses.Include(row => row.Partner).Include(row => row.BusClass).SingleOrDefaultAsync(row => row.Id == id && ids.Contains(row.PartnerId), cancellationToken);
+    if (bus is null) return null;
+    var previous = CatalogAudit.Snapshot(bus);
+    var busClass = await db.CodeDecodeBusClasses.SingleOrDefaultAsync(row => row.Decode == command.BusClass, cancellationToken)
+      ?? throw new PartnerBusClassValidationException();
+    // Inventory is set when a trip is scheduled. Keep that capacity stable until its departures finish.
+    if (bus.SeatCapacity != command.SeatCapacity && await db.ScheduledTrips.AnyAsync(trip => trip.BusId == id
+      && trip.Status == "Scheduled" && trip.DepartureAtUtc > DateTimeOffset.UtcNow, cancellationToken))
+      throw new PartnerBusCapacityConflictException();
+    bus.FleetNumber = command.FleetNumber; bus.PlateNumber = command.PlateNumber; bus.BusClass = busClass; bus.CodeDecodeBusClass = busClass.Code;
+    bus.SeatCapacity = command.SeatCapacity; bus.IsActive = command.IsActive;
+    CatalogAudit.Record(db, bus, userId, "Updated", previous);
+    await PartnerCatalogActivityOutbox.QueueAsync(db, bus.PartnerId, userId, "bus.updated", bus.Id,
+      kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
+    try { await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
+    catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
+    { throw new PartnerBusConflictException(); }
+    if (changes is not null) await changes.PublishAsync(["buses", "scheduled-trips"], userId, bus.PartnerId, cancellationToken);
+    return new(bus.Id, bus.PartnerId, bus.Partner.DisplayName, bus.FleetNumber, bus.PlateNumber, bus.BusClass.Decode, bus.SeatCapacity, bus.IsActive);
+  }
+
+  public async Task<PartnerBusImportResult?> ImportAsync(string userId, Guid partnerId, IReadOnlyList<PartnerBusImportRow> rows, Guid uploadId, CancellationToken cancellationToken)
   {
     if (rows.Count is < 1 or > 500 || rows.Any(row => row.Bus.PartnerId != partnerId)) throw new ArgumentException("Invalid bus import batch.");
     await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
     var partner = await BusOperators(userId).SingleOrDefaultAsync(partner => partner.Id == partnerId, cancellationToken);
     if (partner is null) return null;
+    if (!await db.Uploads.AnyAsync(upload => upload.Id == uploadId && upload.CreatedBy == userId && upload.UploadType == UploadTypeCodes.Buses, cancellationToken))
+      throw new ArgumentException("A matching upload log is required.", nameof(uploadId));
     var plates = rows.Select(row => row.Bus.PlateNumber).ToArray();
     var fleets = rows.Select(row => row.Bus.FleetNumber).ToArray();
     var existing = await db.Buses.AsNoTracking().Where(bus => plates.Contains(bus.PlateNumber!)
@@ -85,11 +123,13 @@ public sealed class PartnerBusRepository(EByaheDbContext db, IOptions<KafkaOptio
     {
       var command = row.Bus;
       var bus = new Bus { PartnerId = partner.Id, FleetNumber = command.FleetNumber, PlateNumber = command.PlateNumber,
-        BusClass = classByName[command.BusClass], SeatCapacity = command.SeatCapacity };
+        BusClass = classByName[command.BusClass], CodeDecodeBusClass = classByName[command.BusClass].Code, SeatCapacity = command.SeatCapacity };
       db.Buses.Add(bus);
-      await PartnerCatalogActivityOutbox.QueueAsync(db, partner.Id, userId, "bus.created", bus.Id,
-        kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
+      db.UploadRecords.Add(new UploadRecord { UploadId = uploadId, BusId = bus.Id });
+      CatalogAudit.Record(db, bus, userId, "Imported", uploadId: uploadId);
     }
+    await PartnerCatalogActivityOutbox.QueueImportAsync(db, partner.Id, userId, "buses.imported", rows.Count, uploadId,
+      kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
     try { await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
     catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
     { throw new PartnerBusConflictException(); }

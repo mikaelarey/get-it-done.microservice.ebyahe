@@ -78,6 +78,9 @@ public static class KeycloakAuthenticationExtensions
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadMembersPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadMembers(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ManageMembersPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanManageMembers(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.Policy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.HasAccess(context.User)));

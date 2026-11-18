@@ -44,6 +44,8 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
           if (eventId == Guid.Empty || record.Key != eventId.ToString()) throw new InvalidDataException();
           if (type == "partner.member.provisioned")
             await (members ?? throw new InvalidOperationException()).CompleteAsync(record, cancellationToken);
+          else if (type == "partner.member.updated")
+            await (members ?? throw new InvalidOperationException()).ApplyAccountUpdateAsync(record, cancellationToken);
           else if (type != "partner.member.requested") throw new InvalidDataException("Unsupported partner member event.");
           await incoming.CompleteRecordAsync(id, eventId, Now(), cancellationToken);
         }

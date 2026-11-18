@@ -14,10 +14,11 @@ public sealed partial class SqlServerDatabaseTests
     var partner = await SeedMemberPartner(); await using var db = CreateDatabase();
     var location = new Location { Code = "TERMINAL-CITY", Name = "Terminal city" }; db.Locations.Add(location); await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
-    var command = new { partnerId = partner.Id, locationId = location.Id, name = "New terminal", address = "Terminal address" };
+    var command = new { partnerId = partner.Id, codeDecodeRegion = 3, codeDecodeProvince = 2, codeDecodeMunicipality = 1, codeDecodeBarangay = 1, name = "New terminal", address = "Terminal address" };
     client.DefaultRequestHeaders.Authorization = null;
     Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
     Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/partner/terminals/locations")).StatusCode);
+    Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/partner/terminals/regions")).StatusCode);
     foreach (var roles in new[] { BusRoles(), BusRoles("bus.read"), BusRoles("bus.write"), new Dictionary<string, object> {
       ["get-it-done-web"] = new { roles = new[] { "partner", "bus.read", "bus.write" } } } })
     {
@@ -25,6 +26,7 @@ public sealed partial class SqlServerDatabaseTests
       Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals/workspaces")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals/locations")).StatusCode);
+      Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/partner/terminals/barangays?codeDecodeMunicipality=1")).StatusCode);
       Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/terminals", command)).StatusCode);
     }
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("terminal.read")));
@@ -49,18 +51,25 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(partner.Id, Assert.Single((await client.GetFromJsonAsync<PartnerTerminalWorkspace[]>("/api/partner/terminals/workspaces"))!).Id);
     var locations = (await client.GetFromJsonAsync<PartnerTerminalLocation[]>("/api/partner/terminals/locations"))!;
     Assert.Equal(new[] { first.Id, second.Id }, locations.Select(location => location.Id));
-    var command = new { partnerId = partner.Id, locationId = first.Id, name = " New terminal ", address = " First street\nCity centre " };
+    var command = new { partnerId = partner.Id, codeDecodeRegion = 3, codeDecodeProvince = 2, codeDecodeMunicipality = 1, codeDecodeBarangay = 1, name = " New terminal ", address = " First street\nCity centre " };
     using var created = await client.PostAsJsonAsync("/api/partner/terminals", command);
     Assert.Equal(HttpStatusCode.Created, created.StatusCode); Assert.True(created.Headers.CacheControl!.NoStore);
     var terminal = (await created.Content.ReadFromJsonAsync<PartnerPortalTerminal>())!;
-    Assert.NotEqual(Guid.Empty, terminal.Id); Assert.Equal("New terminal", terminal.Name); Assert.Equal("First street\nCity centre", terminal.Address);
-    Assert.Equal(first.Name, terminal.Location); Assert.True(terminal.IsActive);
-    var saved = await db.BusTerminals.SingleAsync(row => row.Id == terminal.Id); Assert.Equal(first.Id, saved.LocationId); Assert.Equal(partner.Id, saved.PartnerId);
+    Assert.NotEqual(Guid.Empty, terminal.Id); Assert.Equal("New terminal", terminal.Name);
+    Assert.Equal("First street\nCity centre, Adams (Pob.), Adams, Ilocos Norte, Region I", terminal.Address);
+    Assert.Equal("Adams (Ilocos Norte)", terminal.Location); Assert.True(terminal.IsActive);
+    var saved = await db.BusTerminals.Include(row => row.Location).SingleAsync(row => row.Id == terminal.Id);
+    Assert.Equal(1, saved.Location.CodeDecodeBarangay); Assert.Equal(1, saved.Location.CodeDecodeMunicipality);
+    Assert.Equal(2, saved.Location.CodeDecodeProvince); Assert.Equal(3, saved.Location.CodeDecodeRegion); Assert.Equal(partner.Id, saved.PartnerId);
     Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/partner/terminals", command with { name = "NEW TERMINAL" })).StatusCode);
-    Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/partner/terminals", command with { locationId = second.Id })).StatusCode);
-    foreach (var invalid in new[] { command with { locationId = Guid.NewGuid() }, command with { locationId = inactive.Id }, command with { locationId = Guid.Empty },
+    Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/partner/terminals", command with { codeDecodeMunicipality = 2, codeDecodeBarangay = 2 })).StatusCode);
+    foreach (var invalid in new[] { command with { codeDecodeRegion = 0 }, command with { codeDecodeRegion = 1 }, command with { codeDecodeProvince = 1 },
+      command with { codeDecodeMunicipality = 2 }, command with { codeDecodeBarangay = int.MaxValue },
       command with { name = " " }, command with { address = " " }, command with { name = new string('A', 255) }, command with { address = new string('A', 501) } })
       Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/partner/terminals", invalid)).StatusCode);
+    saved.Location.IsActive = false; await db.SaveChangesAsync();
+    Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/partner/terminals", command with { name = "Inactive location terminal" })).StatusCode);
+    saved.Location.IsActive = true; await db.SaveChangesAsync();
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/terminals", command with { partnerId = foreign.Id })).StatusCode);
     var page = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTerminal>>("/api/partner/terminals?pageSize=1"))!;
     var next = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTerminal>>("/api/partner/terminals?pageSize=1&page=2"))!;

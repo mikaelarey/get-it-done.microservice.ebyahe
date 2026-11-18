@@ -36,9 +36,14 @@ The SQL Server database is `Getitdone.Ebyahe`. It contains:
 | `Partners`, `Locations`, `BusTerminals`, `Buses` | Approved partner catalog, search locations, terminals and fleet |
 | `PartnerUsers` | GUID links between partners and local user references, active status and UTC creation time |
 | `BusRoutes`, `ScheduledTrips` | Directional routes and dated departures with database fares |
+| `CodeDecodeRegions`, `CodeDecodeProvinces`, `CodeDecodeMunicipalities`, `CodeDecodeBarangays` | Geographic setup codes, decoded names and parent relationships from the supplied SQL files |
 
 See [bus-catalog.md](docs/bus-catalog.md) for public search endpoints, development
 sample data and the future partner management workflow.
+See [geography-setup.md](docs/geography-setup.md) for geographic setup schemas,
+source data and batched migration deployment.
+See [terminal-excel-import.md](docs/terminal-excel-import.md) for terminal address
+dropdowns, the static Excel template and atomic bulk imports.
 See [partner-users.md](docs/partner-users.md) for partner membership relationships
 and how the approval workflow should create the first membership.
 See [application-review.md](docs/application-review.md) for the reviewer-only
@@ -378,3 +383,9 @@ and apply pending EF migrations with the existing deployment procedure.
 
 Run `CodeDecodeSchemaTests` with the service's SQL Server test environment variable
 to check identity generation, unique indexes, code references and audit FK rejection.
+
+Catalog actions now write `BusLogs`, `TerminalLogs` and `ScheduledTripLogs` with
+before/after snapshots and creator references. `Uploads` records import attempts;
+`UploadRecords` connects successful rows through typed foreign keys. Upload types
+come from `CodeDecodeUploadTypes`. See [catalog audit and uploads](docs/catalog-audit-and-uploads.md)
+for the schema, transaction boundaries, migration and logging coverage.

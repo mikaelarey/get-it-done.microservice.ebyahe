@@ -39,7 +39,11 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
   {
     var ids = PartnerIds(userId);
     var query = database.BusTerminals.AsNoTracking().Where(row => ids.Contains(row.PartnerId)).OrderBy(row => row.Name).ThenBy(row => row.Id)
-      .Select(row => new PartnerPortalTerminal(row.Id, row.Name, row.Location.Name, row.Address, row.Partner.DisplayName, row.IsActive));
+      .Select(row => new PartnerPortalTerminal(row.Id, row.Name, row.Location.Name,
+        TerminalAddress.Format(row.Address, row.Location.Barangay == null ? null : row.Location.Barangay.Decode,
+          row.Location.Municipality == null ? null : row.Location.Municipality.Decode,
+          row.Location.Province == null ? null : row.Location.Province.Decode,
+          row.Location.Region == null ? null : row.Location.Region.Decode), row.Partner.DisplayName, row.IsActive));
     return Page(query, page, pageSize, cancellationToken);
   }
 

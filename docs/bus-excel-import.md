@@ -28,8 +28,13 @@ Success returns `{ "importedCount": 2, "errors": [] }`. Invalid files/rows retur
 `{ "importedCount": 0, "errors": [{ "row": 3, "field": "Plate number", "message": "..." }] }`.
 Row numbers match Excel; row 0 identifies a file-level problem. Permission failures return 403.
 
-All rows and their existing `bus.created` notification events commit together in
-one transaction. Any error leaves the entire batch unsaved. Unique database
+All rows and one `buses.imported` summary activity commit together in
+one transaction. Each active member of the selected partner receives one notification,
+such as `Test Five successfully created 20 buses using file upload.` The activity
+details include `recordCount` and `uploadId`; the link opens `/uploads/{uploadId}`.
+Disjoint audience envelopes keep large partner groups within the Kafka payload limit
+without notifying a member twice. Manual creation still uses `bus.created`.
+Any error leaves the entire batch unsaved and sends no notification. Unique database
 indexes also protect concurrent imports. Successful imports refresh the fleet
 through the existing live update mechanism and the page's completion callback.
 The `AddCodeDecodeBusClasses` migration seeds the ten template classes and

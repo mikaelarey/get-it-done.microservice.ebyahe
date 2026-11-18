@@ -21,10 +21,22 @@ public sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
 {
   public void Configure(EntityTypeBuilder<Location> b)
   {
-    b.ToTable("Locations"); b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
+    b.ToTable("Locations", table => table.HasCheckConstraint("CK_Locations_Geography", """
+      ([CodeDecodeRegion] IS NULL AND [CodeDecodeProvince] IS NULL AND [CodeDecodeMunicipality] IS NULL AND [CodeDecodeBarangay] IS NULL)
+      OR ([CountryCode] = 'PH' AND [CodeDecodeRegion] IS NOT NULL AND [CodeDecodeProvince] IS NOT NULL AND [CodeDecodeMunicipality] IS NOT NULL AND [CodeDecodeBarangay] IS NOT NULL)
+      """));
+    b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
     b.Property(x => x.Code).HasMaxLength(64).IsRequired(); b.HasIndex(x => x.Code).IsUnique();
     b.Property(x => x.Name).HasMaxLength(100).IsRequired();
     b.Property(x => x.CountryCode).HasMaxLength(2).IsRequired();
+    b.HasOne(x => x.Region).WithMany().HasForeignKey(x => x.CodeDecodeRegion).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    b.HasOne(x => x.Province).WithMany().HasForeignKey(x => new { x.CodeDecodeProvince, x.CodeDecodeRegion })
+      .HasPrincipalKey(x => new { x.Code, x.CodeDecodeRegion }).OnDelete(DeleteBehavior.Restrict);
+    b.HasOne(x => x.Municipality).WithMany().HasForeignKey(x => new { x.CodeDecodeMunicipality, x.CodeDecodeProvince })
+      .HasPrincipalKey(x => new { x.Code, x.CodeDecodeProvince }).OnDelete(DeleteBehavior.Restrict);
+    b.HasOne(x => x.Barangay).WithMany().HasForeignKey(x => new { x.CodeDecodeBarangay, x.CodeDecodeMunicipality })
+      .HasPrincipalKey(x => new { x.Code, x.CodeDecodeMunicipality }).OnDelete(DeleteBehavior.Restrict);
+    b.HasIndex(x => x.CodeDecodeBarangay).IsUnique().HasFilter("[CodeDecodeBarangay] IS NOT NULL");
   }
 }
 public sealed class BusTerminalConfiguration : IEntityTypeConfiguration<BusTerminal>

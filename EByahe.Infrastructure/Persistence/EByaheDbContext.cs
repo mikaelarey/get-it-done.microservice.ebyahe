@@ -9,6 +9,14 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   : DbContext(options), IUnitOfWork
 {
   public DbSet<RefUser> RefUsers => Set<RefUser>();
+  public DbSet<UserUploadBatch> UserUploadBatches => Set<UserUploadBatch>();
+  public DbSet<UploadMemberRequest> UploadMemberRequests => Set<UploadMemberRequest>();
+  public DbSet<Upload> Uploads => Set<Upload>();
+  public DbSet<UploadRecord> UploadRecords => Set<UploadRecord>();
+  public DbSet<CodeDecodeUploadType> CodeDecodeUploadTypes => Set<CodeDecodeUploadType>();
+  public DbSet<BusLog> BusLogs => Set<BusLog>();
+  public DbSet<TerminalLog> TerminalLogs => Set<TerminalLog>();
+  public DbSet<ScheduledTripLog> ScheduledTripLogs => Set<ScheduledTripLog>();
   public DbSet<BusBooking> BusBookings => Set<BusBooking>();
   public DbSet<BookingStatus> CodeDecodeBookingStatuses => Set<BookingStatus>();
   public DbSet<PaymentStatus> CodeDecodePaymentStatuses => Set<PaymentStatus>();
@@ -22,6 +30,10 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   public DbSet<BusTerminal> BusTerminals => Set<BusTerminal>();
   public DbSet<Bus> Buses => Set<Bus>();
   public DbSet<CodeDecodeBusClass> CodeDecodeBusClasses => Set<CodeDecodeBusClass>();
+  public DbSet<CodeDecodeRegion> CodeDecodeRegions => Set<CodeDecodeRegion>();
+  public DbSet<CodeDecodeProvince> CodeDecodeProvinces => Set<CodeDecodeProvince>();
+  public DbSet<CodeDecodeMunicipality> CodeDecodeMunicipalities => Set<CodeDecodeMunicipality>();
+  public DbSet<CodeDecodeBarangay> CodeDecodeBarangays => Set<CodeDecodeBarangay>();
   public DbSet<BusRoute> BusRoutes => Set<BusRoute>();
   public DbSet<ScheduledTrip> ScheduledTrips => Set<ScheduledTrip>();
   public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -85,7 +97,7 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   private void EnsureAppendOnlyLogs()
   {
     if (ChangeTracker.Entries().Any(entry => entry.Entity is EByahe.Domain.Models.Outgoing or IncomingLog
-        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog
+        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog or BusLog or TerminalLog or ScheduledTripLog or Upload or UploadRecord or UploadMemberRequest
       && entry.State is EntityState.Modified or EntityState.Deleted))
       throw new InvalidOperationException("Log and approval entries are append-only; add a new status entry instead.");
   }

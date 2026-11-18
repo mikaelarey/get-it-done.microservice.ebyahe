@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Persistence/Migrations/Scripts/ConvertApplicationKeysToGuids.sql" />
+    <EmbeddedResource Include="Persistence/Migrations/Scripts/Geography/*.sql" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.104.8" />
     <PackageReference Include="Confluent.Kafka" Version="2.16.0" />
     <ProjectReference Include="..\EByahe.Domain\EByahe.Domain.csproj" />

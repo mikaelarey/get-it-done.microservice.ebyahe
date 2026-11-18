@@ -89,6 +89,8 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(route.Id, Assert.Single(options.Routes).Id);
     var list = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTrip>>("/api/partner/scheduled-trips?pageSize=1"))!;
     Assert.Equal(3, list.TotalCount); Assert.Single(list.Items);
+    var logs = await db.ScheduledTripLogs.ToArrayAsync(); Assert.Equal(3, logs.Length);
+    Assert.All(logs, log => { Assert.Equal("Created", log.Action); Assert.Null(log.PreviousValue); Assert.Equal(PartnerApiFactory.Subject, log.CreatedBy); });
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: PartnerApiFactory.Subject.ToUpperInvariant(), resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));
     Assert.Empty((await client.GetFromJsonAsync<PartnerTripOptions>("/api/partner/scheduled-trips/options"))!.Buses);
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command)).StatusCode);

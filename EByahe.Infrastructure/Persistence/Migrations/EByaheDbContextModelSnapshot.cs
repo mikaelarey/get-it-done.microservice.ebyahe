@@ -304,6 +304,55 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.ToTable("BusBookingStatusLogs", (string)null);
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.BusLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<Guid>("BusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("CurrentValue")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("PreviousValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UploadId");
+
+                    b.HasIndex("BusId", "DateTimeCreated");
+
+                    b.ToTable("BusLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BusLogs_Values", "[Action] IN ('Created','Updated','Imported') AND ISJSON([CurrentValue]) = 1 AND ([PreviousValue] IS NULL OR ISJSON([PreviousValue]) = 1)");
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.BusRoute", b =>
                 {
                     b.Property<Guid>("Id")
@@ -379,6 +428,49 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("BusTerminals", (string)null);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBarangay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<int>("CodeDecodeMunicipality")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Code");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("CodeDecodeMunicipality", "Decode");
+
+                    b.ToTable("CodeDecodeBarangays", (string)null);
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBusClass", b =>
@@ -590,6 +682,47 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                             DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 17, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Decode = "AcknowledgementFailed"
                         });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeMunicipality", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<int>("CodeDecodeProvince")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("CodeDecodeProvince", "Decode");
+
+                    b.ToTable("CodeDecodeMunicipalities", (string)null);
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeOutboxStatus", b =>
@@ -1028,6 +1161,88 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeProvince", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<int>("CodeDecodeRegion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("CodeDecodeRegion", "Decode");
+
+                    b.ToTable("CodeDecodeProvinces", (string)null);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeRegion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.ToTable("CodeDecodeRegions", (string)null);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1083,6 +1298,79 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                             CreatedBy = "System",
                             DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 17, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Decode = "Cancelled"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeUploadType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeUploadTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("a11d0000-0000-4000-8000-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Buses"
+                        },
+                        new
+                        {
+                            Id = new Guid("a11d0000-0000-4000-8000-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Terminals"
+                        },
+                        new
+                        {
+                            Id = new Guid("a11d0000-0000-4000-8000-000000000003"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "ScheduledTrips"
+                        },
+                        new
+                        {
+                            Id = new Guid("a11d0000-0000-4000-8000-000000000004"),
+                            Code = 4,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Users"
                         });
                 });
 
@@ -1203,6 +1491,18 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<int?>("CodeDecodeBarangay")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CodeDecodeMunicipality")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CodeDecodeProvince")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CodeDecodeRegion")
+                        .HasColumnType("int");
+
                     b.Property<string>("CountryCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -1224,7 +1524,22 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Locations", (string)null);
+                    b.HasIndex("CodeDecodeBarangay")
+                        .IsUnique()
+                        .HasFilter("[CodeDecodeBarangay] IS NOT NULL");
+
+                    b.HasIndex("CodeDecodeRegion");
+
+                    b.HasIndex("CodeDecodeBarangay", "CodeDecodeMunicipality");
+
+                    b.HasIndex("CodeDecodeMunicipality", "CodeDecodeProvince");
+
+                    b.HasIndex("CodeDecodeProvince", "CodeDecodeRegion");
+
+                    b.ToTable("Locations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Locations_Geography", "([CodeDecodeRegion] IS NULL AND [CodeDecodeProvince] IS NULL AND [CodeDecodeMunicipality] IS NULL AND [CodeDecodeBarangay] IS NULL)\nOR ([CountryCode] = 'PH' AND [CodeDecodeRegion] IS NOT NULL AND [CodeDecodeProvince] IS NOT NULL AND [CodeDecodeMunicipality] IS NOT NULL AND [CodeDecodeBarangay] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.OutboxMessage", b =>
@@ -1747,6 +2062,9 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<DateTimeOffset?>("LastAccountUpdateAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<Guid>("PartnerId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2039,6 +2357,55 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.ScheduledTripLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("CurrentValue")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("PreviousValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ScheduledTripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UploadId");
+
+                    b.HasIndex("ScheduledTripId", "DateTimeCreated");
+
+                    b.ToTable("ScheduledTripLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ScheduledTripLogs_Values", "[Action] IN ('Created','Updated','Imported') AND ISJSON([CurrentValue]) = 1 AND ([PreviousValue] IS NULL OR ISJSON([PreviousValue]) = 1)");
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.TemporaryPassword", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2067,6 +2434,183 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("TemporaryPasswords", (string)null);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.TerminalLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("CurrentValue")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("PreviousValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TerminalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UploadId");
+
+                    b.HasIndex("TerminalId", "DateTimeCreated");
+
+                    b.ToTable("TerminalLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TerminalLogs_Values", "[Action] IN ('Created','Updated','Imported') AND ISJSON([CurrentValue]) = 1 AND ([PreviousValue] IS NULL OR ISJSON([PreviousValue]) = 1)");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Upload", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("UploadType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadType");
+
+                    b.HasIndex("CreatedBy", "DateTimeCreated");
+
+                    b.ToTable("Uploads", (string)null);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.UploadMemberRequest", b =>
+                {
+                    b.Property<Guid>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("UploadId", "RequestId");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.ToTable("UploadMemberRequests", (string)null);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.UploadRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RefUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ScheduledTripId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TerminalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusId");
+
+                    b.HasIndex("RefUserId");
+
+                    b.HasIndex("ScheduledTripId");
+
+                    b.HasIndex("TerminalId");
+
+                    b.HasIndex("UploadId");
+
+                    b.HasIndex("UploadId", "BusId")
+                        .IsUnique()
+                        .HasFilter("[BusId] IS NOT NULL");
+
+                    b.HasIndex("UploadId", "RefUserId")
+                        .IsUnique()
+                        .HasFilter("[RefUserId] IS NOT NULL");
+
+                    b.HasIndex("UploadId", "ScheduledTripId")
+                        .IsUnique()
+                        .HasFilter("[ScheduledTripId] IS NOT NULL");
+
+                    b.HasIndex("UploadId", "TerminalId")
+                        .IsUnique()
+                        .HasFilter("[TerminalId] IS NOT NULL");
+
+                    b.ToTable("UploadRecords", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UploadRecords_OneRecord", "(CASE WHEN [BusId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [TerminalId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [ScheduledTripId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [RefUserId] IS NULL THEN 0 ELSE 1 END) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.UserUploadBatch", b =>
+                {
+                    b.Property<Guid>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("FinishedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<int>("RequestedCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("UploadId");
+
+                    b.HasIndex("PartnerId");
+
+                    b.ToTable("UserUploadBatches", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UserUploadBatches_Count", "[RequestedCount] BETWEEN 1 AND 500");
+                        });
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.BookingStatus", b =>
@@ -2175,6 +2719,27 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.BusLog", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Bus", null)
+                        .WithMany()
+                        .HasForeignKey("BusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Upload", null)
+                        .WithMany()
+                        .HasForeignKey("UploadId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.BusRoute", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.Partner", "Partner")
@@ -2223,6 +2788,25 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Navigation("Partner");
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBarangay", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeMunicipality", "Municipality")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeMunicipality")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Municipality");
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBusClass", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.RefUser", null)
@@ -2241,6 +2825,25 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("ExternalUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeMunicipality", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeProvince", "Province")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeProvince")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Province");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeOutboxStatus", b =>
@@ -2303,7 +2906,46 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeProvince", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeRegion", "Region")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeRegion")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeRegion", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeUploadType", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.RefUser", null)
                         .WithMany()
@@ -2337,6 +2979,41 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasForeignKey("IncomingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Location", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeRegion", "Region")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeRegion")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeBarangay", "Barangay")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBarangay", "CodeDecodeMunicipality")
+                        .HasPrincipalKey("Code", "CodeDecodeMunicipality")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeMunicipality", "Municipality")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeMunicipality", "CodeDecodeProvince")
+                        .HasPrincipalKey("Code", "CodeDecodeProvince")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeProvince", "Province")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeProvince", "CodeDecodeRegion")
+                        .HasPrincipalKey("Code", "CodeDecodeRegion")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Barangay");
+
+                    b.Navigation("Municipality");
+
+                    b.Navigation("Province");
+
+                    b.Navigation("Region");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.OutboxMessage", b =>
@@ -2550,6 +3227,27 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Navigation("Partner");
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.ScheduledTripLog", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.ScheduledTrip", null)
+                        .WithMany()
+                        .HasForeignKey("ScheduledTripId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Upload", null)
+                        .WithMany()
+                        .HasForeignKey("UploadId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.TemporaryPassword", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.PartnerMemberRequest", "Request")
@@ -2559,6 +3257,105 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.TerminalLog", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.BusTerminal", null)
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Upload", null)
+                        .WithMany()
+                        .HasForeignKey("UploadId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Upload", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeUploadType", null)
+                        .WithMany()
+                        .HasForeignKey("UploadType")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.UploadMemberRequest", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.PartnerMemberRequest", "Request")
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.UserUploadBatch", null)
+                        .WithMany()
+                        .HasForeignKey("UploadId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.UploadRecord", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Bus", null)
+                        .WithMany()
+                        .HasForeignKey("BusId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("RefUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.ScheduledTrip", null)
+                        .WithMany()
+                        .HasForeignKey("ScheduledTripId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.BusTerminal", null)
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.Upload", null)
+                        .WithMany()
+                        .HasForeignKey("UploadId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.UserUploadBatch", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.Partner", null)
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Upload", null)
+                        .WithMany()
+                        .HasForeignKey("UploadId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.Incoming", b =>

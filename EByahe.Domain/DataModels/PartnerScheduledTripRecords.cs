@@ -8,3 +8,9 @@ public sealed record PartnerTripOptions(IReadOnlyList<PartnerTripWorkspace> Work
   IReadOnlyList<PartnerTripTerminal> Terminals, IReadOnlyList<PartnerTripRoute> Routes);
 public sealed record AddPartnerScheduledTrip(Guid PartnerId, Guid BusId, Guid OriginTerminalId, Guid DestinationTerminalId,
   DateTimeOffset DepartureAtUtc, int DurationMinutes, decimal BaseFare);
+public sealed record UpdatePartnerScheduledTrip(Guid BusId, Guid OriginTerminalId, Guid DestinationTerminalId,
+  DateTimeOffset DepartureAtUtc, int DurationMinutes, decimal BaseFare);
+public sealed record PartnerScheduledTripDetails(Guid Id, Guid PartnerId, string Partner, Guid BusId, string FleetNumber,
+  string? PlateNumber, string BusClass, int SeatCapacity, Guid OriginTerminalId, string OriginTerminal, string Origin,
+  Guid DestinationTerminalId, string DestinationTerminal, string Destination, DateTimeOffset DepartureAtUtc,
+  int DurationMinutes, int? AvailableSeats, decimal Fare, string Status, bool CanUpdate, string? UpdateRestriction);

@@ -12,6 +12,8 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
 builder.Services.AddScoped<IRecordChangePublisher, RecordChangePublisher>();
 builder.Services.AddControllers();
+builder.Services.AddHttpClient("PartnerAccounts", client => client.Timeout = TimeSpan.FromSeconds(60))
+  .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddApplication();
 builder.Services.AddKeycloakAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -21,7 +23,7 @@ builder.Services.Configure<IISServerOptions>(options =>
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
 {
   var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-  if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyHeader().WithMethods("GET", "POST").AllowCredentials();
+  if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyHeader().WithMethods("GET", "POST", "PUT").AllowCredentials();
 }));
 
 var app = builder.Build();

@@ -26,7 +26,7 @@ public sealed partial class SqlServerDatabaseTests
         BrokerAddressFamily = BrokerAddressFamily.V4, PartnerApprovalTopic = topic, NotificationTopic = notifications, DeliveryTimeoutMilliseconds = 3000 };
       var options = Options.Create(settings);
       await using var db = new EByaheDbContext(new DbContextOptionsBuilder<EByaheDbContext>().UseSqlServer(ConnectionString).Options, options);
-      db.RefUsers.Add(MembershipUser(PartnerApiFactory.Subject));
+      // ReviewApplication registers the applicant and reviewer audit identities.
       var application = ReviewApplication("Kafka partner", "bus-operator", "Submitted", 0, PartnerApiFactory.Subject);
       db.PartnerApplications.Add(application); await db.SaveChangesAsync();
       var repository = new PartnerApplicationReviewRepository(db, options);
@@ -47,6 +47,7 @@ public sealed partial class SqlServerDatabaseTests
       consumer.Subscribe(topic);
       using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20)); var received = consumer.Consume(deadline.Token);
       Assert.Equal(PartnerApiFactory.Subject, received.Message.Key); Assert.Equal(message.Payload, received.Message.Value);
+      Assert.Equal(message.EventType, System.Text.Encoding.UTF8.GetString(received.Message.Headers.GetLastBytes("eventType")));
       using var json = JsonDocument.Parse(received.Message.Value);
       Assert.Equal("partner.approved", json.RootElement.GetProperty("eventType").GetString());
       Assert.Equal(application.Id, json.RootElement.GetProperty("partner").GetProperty("applicationId").GetGuid());

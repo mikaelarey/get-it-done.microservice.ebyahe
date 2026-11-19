@@ -1,12 +1,19 @@
 namespace EByahe.Domain.Models;
 
-public sealed class Incoming
+public sealed class Incoming : ITopicRecord
 {
   public Guid Id { get; init; }
   public Guid DeliveryId { get; init; }
   public Guid? MessageId { get; set; }
   public string ConsumerGroup { get; init; } = string.Empty;
-  public string Topic { get; init; } = string.Empty;
+  public int CodeDecodeTopic { get; set; }
+  [System.Text.Json.Serialization.JsonIgnore]
+  public CodeDecodeTopic? TopicSetup { get; set; }
+  private string? pendingTopic;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Topic { get => pendingTopic ?? TopicSetup?.Decode ?? string.Empty; init => pendingTopic = value; }
+  public bool HasPendingTopic() => pendingTopic is not null;
+  public void ClearPendingTopic() => pendingTopic = null;
   public int Partition { get; init; }
   public long Offset { get; init; }
   public string? MessageKey { get; init; }

@@ -26,7 +26,7 @@ public sealed partial class SqlServerDatabaseTests
       BusinessName = name, BusinessCategory = category, Status = status,
       TradeName = name, EntityType = "corporation", Tin = "PRIVATE-TAX",
       Address = "Manila terminal", RepresentativeName = "Review Contact", RepresentativeEmail = "contact@example.com",
-      RepresentativeMobile = "09171234567", BankName = "Private Bank", AccountNumber = "987654321234567890",
+      RepresentativeMobile = "09171234567", BankName = "BDO", AccountNumber = "987654321234567890",
       AccountHolder = "Private Holder", SettlementFrequency = "weekly", SubmittedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-age)
     };
   }

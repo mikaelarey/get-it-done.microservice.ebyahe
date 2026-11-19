@@ -17,7 +17,9 @@ public sealed class RefUser
   public string LastName { get; set; } = string.Empty;
   public string Email { get; set; } = string.Empty;
   public string Provider { get; set; } = ManualProvider;
-  public string Role { get; set; } = NormalRole;
+  public int CodeDecodeRole { get; set; } = 1;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string Role { get => CodeDecodeValues.Decode("Roles", CodeDecodeRole); set => CodeDecodeRole = CodeDecodeValues.Code("Roles", value); }
   public DateTimeOffset CreatedAtUtc { get; set; }
   public ICollection<PartnerUser> PartnerMemberships { get; set; } = new List<PartnerUser>();
 }

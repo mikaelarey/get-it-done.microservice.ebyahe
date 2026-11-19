@@ -98,7 +98,7 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
     database.ChangeTracker.Clear();
 
     var invalidRole = await Assert.ThrowsAsync<SqlException>(() => database.Database.ExecuteSqlRawAsync(
-      "UPDATE [RefUsers] SET [Role] = N'normal' WHERE [ExternalUserId] = N'user-1'"));
+      "UPDATE [RefUsers] SET [CodeDecodeRole] = 0 WHERE [ExternalUserId] = N'user-1'"));
     Assert.Equal(547, invalidRole.Number);
   }
 
@@ -109,7 +109,7 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
     var now = DateTime.UtcNow;
     var message = new OutboxMessage
     {
-      Id = Guid.NewGuid(), UserId = "user-1", EventType = "TestEvent",
+      Id = Guid.NewGuid(), UserId = "user-1", EventType = "bus.created",
       Topic = "test.ebyahe", MessageKey = "user-1", Payload = "{}",
       CreatedDateTime = now, NextAttemptDateTime = now
     };

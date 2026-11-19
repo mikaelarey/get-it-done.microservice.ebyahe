@@ -52,7 +52,7 @@ public sealed partial class SqlServerDatabaseTests
       command with { BusId = Guid.NewGuid() }, command with { DestinationTerminalId = command.OriginTerminalId },
       command with { DepartureAtUtc = DateTimeOffset.UtcNow.AddDays(-1) }, command with { DepartureAtUtc = DateTimeOffset.MaxValue } })
       Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(path, invalid)).StatusCode);
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTripUpdate ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='scheduled-trip.updated') THROW 51065,'Test outbox failure',1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTripUpdate ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='scheduled-trip.updated') THROW 51065,'Test outbox failure',1;");
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PutAsJsonAsync(path, command with { BaseFare = 700 })).StatusCode);
     Assert.Equal(620.25m, (await db.ScheduledTrips.AsNoTracking().SingleAsync(row => row.Id == trip.Id)).BaseFare);
     Assert.Equal(2, await db.ScheduledTripLogs.CountAsync()); Assert.Equal(2, await db.OutboxMessages.CountAsync(row => row.EventType == "scheduled-trip.updated"));

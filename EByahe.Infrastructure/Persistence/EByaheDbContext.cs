@@ -40,6 +40,14 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   public DbSet<Outgoing> Outgoing => Set<Outgoing>();
   public DbSet<Incoming> Incoming => Set<Incoming>();
   public DbSet<IncomingLog> IncomingLogs => Set<IncomingLog>();
+  public DbSet<CodeDecodeTopic> CodeDecodeTopics => Set<CodeDecodeTopic>();
+  public DbSet<CodeDecodeEntityType> CodeDecodeEntityTypes => Set<CodeDecodeEntityType>();
+  public DbSet<CodeDecodeSettlementFrequency> CodeDecodeSettlementFrequencies => Set<CodeDecodeSettlementFrequency>();
+  public DbSet<CodeDecodeRole> CodeDecodeRoles => Set<CodeDecodeRole>();
+  public DbSet<CodeDecodeBank> CodeDecodeBanks => Set<CodeDecodeBank>();
+  public DbSet<CodeDecodeEventType> CodeDecodeEventTypes => Set<CodeDecodeEventType>();
+  public DbSet<CodeDecodeDocumentType> CodeDecodeDocumentTypes => Set<CodeDecodeDocumentType>();
+  public DbSet<CodeDecodeBusinessCategory> CodeDecodeBusinessCategories => Set<CodeDecodeBusinessCategory>();
   public DbSet<PartnerApplication> PartnerApplications => Set<PartnerApplication>();
   public DbSet<PartnerApplicationDocument> PartnerApplicationDocuments => Set<PartnerApplicationDocument>();
   public DbSet<PartnerApplicationHistory> PartnerApplicationHistories => Set<PartnerApplicationHistory>();
@@ -57,14 +65,20 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   {
     EnsureAppendOnlyLogs();
     var ids = ChangedPartnerApplications();
-    using var transaction = ids.Length > 0 && Database.CurrentTransaction is null
+    var bankApplications = ChangeTracker.Entries<PartnerApplication>().Select(entry => entry.Entity).Where(application => application.HasPendingBankName()).ToArray();
+    using var transaction = (ids.Length > 0 || bankApplications.Length > 0 || HasTopicChanges()) && Database.CurrentTransaction is null
       ? Database.BeginTransaction(System.Data.IsolationLevel.Serializable) : null;
+    foreach (var application in bankApplications) ResolveBank(application);
+    ids = ChangedPartnerApplications();
     foreach (var id in ids)
       PreparePartnerHistory(id, PartnerApplications.AsNoTracking().Include(row => row.Documents).SingleOrDefault(row => row.Id == id));
     var events = PrepareActivityEvents();
     int result;
-    try { result = base.SaveChanges(acceptAllChangesOnSuccess); transaction?.Commit(); }
-    catch { DetachActivityEvents(events); throw; }
+    var topicRecords = PendingTopicRecords();
+    try { ResolveTopics(topicRecords); result = base.SaveChanges(acceptAllChangesOnSuccess); transaction?.Commit(); }
+    catch { DetachTopicSetups(); DetachActivityEvents(events); throw; }
+    foreach (var record in topicRecords) record.ClearPendingTopic();
+    foreach (var application in bankApplications) application.ClearPendingBankName();
     if (acceptAllChangesOnSuccess) pendingPartnerHistories.Clear();
     return result;
   }
@@ -77,19 +91,26 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   {
     EnsureAppendOnlyLogs();
     var ids = ChangedPartnerApplications();
-    await using var transaction = ids.Length > 0 && Database.CurrentTransaction is null
+    var bankApplications = ChangeTracker.Entries<PartnerApplication>().Select(entry => entry.Entity).Where(application => application.HasPendingBankName()).ToArray();
+    await using var transaction = (ids.Length > 0 || bankApplications.Length > 0 || HasTopicChanges()) && Database.CurrentTransaction is null
       ? await Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken) : null;
+    foreach (var application in bankApplications) await ResolveBankAsync(application, cancellationToken);
+    ids = ChangedPartnerApplications();
     foreach (var id in ids)
       PreparePartnerHistory(id, await PartnerApplications.AsNoTracking().Include(row => row.Documents)
         .SingleOrDefaultAsync(row => row.Id == id, cancellationToken));
     var events = PrepareActivityEvents();
     int result;
+    var topicRecords = PendingTopicRecords();
     try
     {
+      await ResolveTopicsAsync(topicRecords, cancellationToken);
       result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
       if (transaction is not null) await transaction.CommitAsync(cancellationToken);
     }
-    catch { DetachActivityEvents(events); throw; }
+    catch { DetachTopicSetups(); DetachActivityEvents(events); throw; }
+    foreach (var record in topicRecords) record.ClearPendingTopic();
+    foreach (var application in bankApplications) application.ClearPendingBankName();
     if (acceptAllChangesOnSuccess) pendingPartnerHistories.Clear();
     return result;
   }

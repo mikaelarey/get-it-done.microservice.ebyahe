@@ -9,7 +9,9 @@ public sealed class PartnerMemberRequest
   public string FirstName { get; set; } = "";
   public string LastName { get; set; } = "";
   public string Email { get; set; } = "";
-  public string BusinessCategory { get; set; } = "";
+  public int CodeDecodeBusinessCategory { get; set; }
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string BusinessCategory { get => CodeDecodeValues.Decode("BusinessCategories", CodeDecodeBusinessCategory); set => CodeDecodeBusinessCategory = CodeDecodeValues.Code("BusinessCategories", value); }
   public string? RequestedRolesJson { get; set; }
   public string RequestHash { get; set; } = "";
   public int CodeDecodePartnerMemberRequestStatus { get; set; } = 1;

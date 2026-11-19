@@ -88,7 +88,7 @@ public sealed partial class SqlServerDatabaseTests
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: "reviewer", resourceAccess: ReviewRoles()));
     using var started = await client.PostAsync(url + "/review", null);
     await using var db = CreateDatabase();
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectPartnerApprovalEvent ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType = 'partner.approved') THROW 51050, 'Test outbox failure', 1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectPartnerApprovalEvent ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode = 'partner.approved') THROW 51050, 'Test outbox failure', 1;");
     using var response = await client.PostAsync(url + "/approve", null); Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     Assert.Empty(await db.Partners.ToArrayAsync()); Assert.Empty(await db.PartnerUsers.ToArrayAsync());
     Assert.Equal("UnderReview", (await db.PartnerApplications.AsNoTracking().SingleAsync()).Status);

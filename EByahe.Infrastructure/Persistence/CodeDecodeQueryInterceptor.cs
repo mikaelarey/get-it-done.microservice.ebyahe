@@ -25,6 +25,14 @@ internal sealed class CodeDecodeQueryInterceptor : IQueryExpressionInterceptor
       [(typeof(IncomingLog), "Status")] = ("CodeDecodeIncomingStatus", "IncomingStatuses"),
       [(typeof(OutboxMessage), "Status")] = ("CodeDecodeOutboxStatus", "OutboxStatuses"),
       [(typeof(Outgoing), "Status")] = ("CodeDecodeOutgoingStatus", "OutgoingStatuses"),
+      [(typeof(PartnerApplication), "EntityType")] = ("CodeDecodeEntityType", "EntityTypes"),
+      [(typeof(PartnerApplication), "SettlementFrequency")] = ("CodeDecodeSettlementFrequency", "SettlementFrequencies"),
+      [(typeof(RefUser), "Role")] = ("CodeDecodeRole", "Roles"),
+      [(typeof(OutboxMessage), "EventType")] = ("CodeDecodeEventType", "EventTypes"),
+      [(typeof(Outgoing), "EventType")] = ("CodeDecodeEventType", "EventTypes"),
+      [(typeof(PartnerApplicationDocument), "DocumentType")] = ("CodeDecodeDocumentType", "DocumentTypes"),
+      [(typeof(PartnerApplication), "BusinessCategory")] = ("CodeDecodeBusinessCategory", "BusinessCategories"),
+      [(typeof(PartnerMemberRequest), "BusinessCategory")] = ("CodeDecodeBusinessCategory", "BusinessCategories"),
       [(typeof(PartnerApplication), "Status")] = ("CodeDecodePartnerApplicationStatus", "PartnerApplicationStatuses"),
       [(typeof(PartnerApplicationApproval), "Status")] = ("CodeDecodePartnerApplicationApprovalStatus", "PartnerApplicationApprovalStatuses"),
       [(typeof(PartnerApplicationApproval), "PreviousStatus")] = ("CodeDecodePreviousPartnerApplicationApprovalStatus", "PartnerApplicationApprovalStatuses"),
@@ -33,6 +41,10 @@ internal sealed class CodeDecodeQueryInterceptor : IQueryExpressionInterceptor
     };
     protected override Expression VisitMember(MemberExpression node)
     {
+      if (node.Expression is not null && typeof(ITopicRecord).IsAssignableFrom(node.Expression.Type) && node.Member.Name == nameof(ITopicRecord.Topic))
+        return Expression.Coalesce(Expression.Property(Expression.Property(Visit(node.Expression), nameof(ITopicRecord.TopicSetup)), nameof(CodeDecodeTopic.Decode)), Expression.Constant(""));
+      if (node.Expression?.Type == typeof(PartnerApplication) && node.Member.Name == nameof(PartnerApplication.BankName))
+        return Expression.Coalesce(Expression.Property(Expression.Property(Visit(node.Expression), nameof(PartnerApplication.Bank)), nameof(CodeDecodeBank.Decode)), Expression.Constant(""));
       if (node.Expression is not null && Bindings.TryGetValue((node.Expression.Type, node.Member.Name), out var binding))
       {
         var code = Expression.Property(Visit(node.Expression), binding.Column);

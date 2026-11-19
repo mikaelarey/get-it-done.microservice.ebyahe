@@ -14,6 +14,13 @@ public sealed class PartnerApplicationsController(IPartnerApplicationService app
 {
   public const long MaxRequestSize = 52 * 1024 * 1024;
 
+  [HttpGet("banks")]
+  public async Task<ActionResult<IReadOnlyList<string>>> Banks(CancellationToken cancellationToken)
+  {
+    Response.Headers.CacheControl = "private, no-store";
+    return Ok(await applications.BanksAsync(cancellationToken));
+  }
+
   [HttpGet("eligibility")]
   [ProducesResponseType<EByahe.Domain.DataModels.PartnerApplicationEligibility>(StatusCodes.Status200OK)]
   public async Task<ActionResult<EByahe.Domain.DataModels.PartnerApplicationEligibility>> Eligibility(CancellationToken cancellationToken)

@@ -101,6 +101,181 @@ internal static class CodeDecodeModel
         new PaymentType { Id = Guid.Parse("b77c0f51-0a7e-46d7-8332-7b158af304b1"), Code = 4, Decode = "Cash", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-17T00:00:00+00:00") });
     }
     {
+      var setup = builder.Entity<CodeDecodeTopic>();
+      setup.ToTable("CodeDecodeTopics"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(249).IsUnicode(false).UseCollation("Latin1_General_100_BIN2").IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeTopic { Id = Guid.Parse("479cf819-8d46-48a6-9479-000000000001"), Code = 1, Decode = "get-it-done.notifications.v1", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeTopic { Id = Guid.Parse("479cf819-8d46-48a6-9479-000000000002"), Code = 2, Decode = "get-it-done.ebyahe.partners.v1", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeTopic { Id = Guid.Parse("479cf819-8d46-48a6-9479-000000000003"), Code = 3, Decode = "get-it-done.ebyahe.partner-members.v1", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeTopic { Id = Guid.Parse("479cf819-8d46-48a6-9479-000000000004"), Code = 4, Decode = "get-it-done.account.users.v1", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeTopic { Id = Guid.Parse("479cf819-8d46-48a6-9479-000000000005"), Code = 5, Decode = "get-it-done.payment.completed.v1", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    builder.Entity<OutboxMessage>().HasOne(x => x.TopicSetup).WithMany().HasForeignKey(x => x.CodeDecodeTopic).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<Outgoing>().HasOne(x => x.TopicSetup).WithMany().HasForeignKey(x => x.CodeDecodeTopic).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<Incoming>().HasOne(x => x.TopicSetup).WithMany().HasForeignKey(x => x.CodeDecodeTopic).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    {
+      var setup = builder.Entity<CodeDecodeEntityType>();
+      setup.ToTable("CodeDecodeEntityTypes"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(64).IsUnicode(false).IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeEntityType { Id = Guid.Parse("b4c11a61-acb7-4d86-8b09-000000000001"), Code = 1, Decode = "Sole Proprietorship", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEntityType { Id = Guid.Parse("b4c11a61-acb7-4d86-8b09-000000000002"), Code = 2, Decode = "Partnership", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEntityType { Id = Guid.Parse("b4c11a61-acb7-4d86-8b09-000000000003"), Code = 3, Decode = "Corporation", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    {
+      var setup = builder.Entity<CodeDecodeSettlementFrequency>();
+      setup.ToTable("CodeDecodeSettlementFrequencies"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(64).IsUnicode(false).IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeSettlementFrequency { Id = Guid.Parse("b4c11a62-acb7-4d86-8b09-000000000001"), Code = 1, Decode = "Daily", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeSettlementFrequency { Id = Guid.Parse("b4c11a62-acb7-4d86-8b09-000000000002"), Code = 2, Decode = "Weekly", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    {
+      var setup = builder.Entity<CodeDecodeRole>();
+      setup.ToTable("CodeDecodeRoles"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(32).IsUnicode(false).IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeRole { Id = Guid.Parse("b4c11a63-acb7-4d86-8b09-000000000001"), Code = 1, Decode = "Normal", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeRole { Id = Guid.Parse("b4c11a63-acb7-4d86-8b09-000000000002"), Code = 2, Decode = "Administrator", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    {
+      var setup = builder.Entity<CodeDecodeBank>();
+      setup.ToTable("CodeDecodeBanks"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(100).UseCollation("Latin1_General_100_BIN2").IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000001"), Code = 1, Decode = "BDO", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000002"), Code = 2, Decode = "BPI", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000003"), Code = 3, Decode = "Metrobank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000004"), Code = 4, Decode = "Land Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000005"), Code = 5, Decode = "PNB", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000006"), Code = 6, Decode = "RCBC", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000007"), Code = 7, Decode = "Security Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000008"), Code = 8, Decode = "UnionBank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000009"), Code = 9, Decode = "BDO Unibank, Inc.", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000010"), Code = 10, Decode = "Bank of the Philippine Islands (BPI)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000011"), Code = 11, Decode = "Metropolitan Bank and Trust Company (Metrobank)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000012"), Code = 12, Decode = "Land Bank of the Philippines (LANDBANK)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000013"), Code = 13, Decode = "Philippine National Bank (PNB)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000014"), Code = 14, Decode = "Security Bank Corporation", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000015"), Code = 15, Decode = "China Banking Corporation (China Bank)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000016"), Code = 16, Decode = "Union Bank of the Philippines (UnionBank)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000017"), Code = 17, Decode = "Rizal Commercial Banking Corporation (RCBC)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000018"), Code = 18, Decode = "Development Bank of the Philippines (DBP)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000019"), Code = 19, Decode = "Asia United Bank Corporation (AUB)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000020"), Code = 20, Decode = "Bank of Commerce", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000021"), Code = 21, Decode = "Philippine Veterans Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000022"), Code = 22, Decode = "Al-Amanah Islamic Investment Bank of the Philippines", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000023"), Code = 23, Decode = "BPI Family Savings Bank / BPI Direct BanKo", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000024"), Code = 24, Decode = "China Bank Savings, Inc.", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000025"), Code = 25, Decode = "Philippine Savings Bank (PSBank)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000026"), Code = 26, Decode = "City Savings Bank Inc.", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000027"), Code = 27, Decode = "Philippine Business Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000028"), Code = 28, Decode = "Equicom Savings Bank, Inc.", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000029"), Code = 29, Decode = "ISLA Bank (A Thrift Bank), Inc.", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000030"), Code = 30, Decode = "Maya Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000031"), Code = 31, Decode = "GoTyme Bank Corporation", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000032"), Code = 32, Decode = "Tonik Digital Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000033"), Code = 33, Decode = "UnionDigital Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000034"), Code = 34, Decode = "Maribank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000035"), Code = 35, Decode = "UNO Digital Bank", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBank { Id = Guid.Parse("b4c11a64-acb7-4d86-8b09-000000000036"), Code = 36, Decode = "Overseas Filipino Bank (OFBank)", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    builder.Entity<PartnerApplication>().HasOne<CodeDecodeEntityType>().WithMany().HasForeignKey(x => x.CodeDecodeEntityType).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<PartnerApplication>().HasOne<CodeDecodeSettlementFrequency>().WithMany().HasForeignKey(x => x.CodeDecodeSettlementFrequency).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<PartnerApplication>().HasOne(x => x.Bank).WithMany().HasForeignKey(x => x.CodeDecodeBank).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<RefUser>().HasOne<CodeDecodeRole>().WithMany().HasForeignKey(x => x.CodeDecodeRole).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    {
+      var setup = builder.Entity<CodeDecodeEventType>();
+      setup.ToTable("CodeDecodeEventTypes"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(100).IsUnicode(false).IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000001"), Code = 1, Decode = "partner-application.submitted", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000002"), Code = 2, Decode = "partner-application.under-review", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000003"), Code = 3, Decode = "partner-application.approved", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000004"), Code = 4, Decode = "partner-application.declined", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000005"), Code = 5, Decode = "partner.approved", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000006"), Code = 6, Decode = "partner.created", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000007"), Code = 7, Decode = "partner.updated", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000008"), Code = 8, Decode = "partner.member.requested", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000009"), Code = 9, Decode = "partner-user.updated", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000010"), Code = 10, Decode = "booking.created", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000011"), Code = 11, Decode = "bus.created", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000012"), Code = 12, Decode = "bus.updated", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000013"), Code = 13, Decode = "buses.imported", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000014"), Code = 14, Decode = "terminal.created", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000015"), Code = 15, Decode = "terminal.updated", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000016"), Code = 16, Decode = "terminals.imported", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000017"), Code = 17, Decode = "scheduled-trip.created", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000018"), Code = 18, Decode = "scheduled-trip.updated", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000019"), Code = 19, Decode = "scheduled-trips.imported", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeEventType { Id = Guid.Parse("93ede9f3-4a5c-498e-8613-000000000020"), Code = 20, Decode = "users.imported", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    builder.Entity<OutboxMessage>().HasOne<CodeDecodeEventType>().WithMany().HasForeignKey(x => x.CodeDecodeEventType).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<Outgoing>().HasOne<CodeDecodeEventType>().WithMany().HasForeignKey(x => x.CodeDecodeEventType).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    {
+      var setup = builder.Entity<CodeDecodeDocumentType>();
+      setup.ToTable("CodeDecodeDocumentTypes"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(64).IsUnicode(false).IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeDocumentType { Id = Guid.Parse("075dc7bd-87b3-4766-b600-0fb753b81d81"), Code = 1, Decode = "Registration", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeDocumentType { Id = Guid.Parse("d6437bc2-66c5-4e52-9458-a197dcb68f6b"), Code = 2, Decode = "BIR", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeDocumentType { Id = Guid.Parse("4271b5bd-ab67-4797-8239-e0b953bc7c93"), Code = 3, Decode = "Permit", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeDocumentType { Id = Guid.Parse("2184c469-e520-4a58-af41-3a66cb536e6f"), Code = 4, Decode = "Accreditation", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeDocumentType { Id = Guid.Parse("2f4a63db-e528-4ae9-a41b-fe606e520814"), Code = 5, Decode = "Bank Account Proof", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    builder.Entity<PartnerApplicationDocument>().HasOne<CodeDecodeDocumentType>().WithMany().HasForeignKey(x => x.CodeDecodeDocumentType).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    {
+      var setup = builder.Entity<CodeDecodeBusinessCategory>();
+      setup.ToTable("CodeDecodeBusinessCategories"); setup.HasKey(x => x.Id);
+      setup.Property(x => x.Id).ValueGeneratedNever();
+      setup.Property(x => x.Code).UseIdentityColumn(1, 1); setup.HasAlternateKey(x => x.Code);
+      setup.Property(x => x.Decode).HasMaxLength(64).IsUnicode(false).IsRequired(); setup.HasIndex(x => x.Decode).IsUnique();
+      setup.Property(x => x.CreatedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").HasDefaultValue("System").IsRequired();
+      setup.Property(x => x.DateTimeCreated).HasDefaultValueSql("SYSUTCDATETIME()");
+      setup.HasOne<RefUser>().WithMany().HasForeignKey(x => x.CreatedBy).HasPrincipalKey(x => x.ExternalUserId).OnDelete(DeleteBehavior.Restrict);
+      setup.HasData(
+        new CodeDecodeBusinessCategory { Id = Guid.Parse("c60b60a7-5b9e-40bf-9d06-8fb38a5263fd"), Code = 1, Decode = "Bus Operator", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") },
+        new CodeDecodeBusinessCategory { Id = Guid.Parse("af7f5cca-4f4a-48b1-9770-21b7e779d3eb"), Code = 2, Decode = "Hotel", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-19T00:00:00+00:00") });
+    }
+    builder.Entity<PartnerApplication>().HasOne<CodeDecodeBusinessCategory>().WithMany().HasForeignKey(x => x.CodeDecodeBusinessCategory).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.Entity<PartnerMemberRequest>().HasOne<CodeDecodeBusinessCategory>().WithMany().HasForeignKey(x => x.CodeDecodeBusinessCategory).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
+    {
       var setup = builder.Entity<CodeDecodePartnerApplicationStatus>();
       setup.ToTable("CodeDecodePartnerApplicationStatuses"); setup.HasKey(x => x.Id);
       setup.Property(x => x.Id).ValueGeneratedNever();

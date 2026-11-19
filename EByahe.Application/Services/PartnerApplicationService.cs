@@ -15,6 +15,8 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
   TimeProvider clock, ILogger<PartnerApplicationService> logger)
   : IPartnerApplicationService
 {
+  public Task<IReadOnlyList<string>> BanksAsync(CancellationToken cancellationToken = default) => applications.BanksAsync(cancellationToken);
+
   public async Task<PartnerApplicationEligibility> EligibilityAsync(string userId,
     CancellationToken cancellationToken = default)
   {
@@ -78,6 +80,8 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
     // Reject a known duplicate before reading files or writing to document storage.
     var active = await applications.GetActiveForUserAsync(createdBy, cancellationToken);
     if (active is not null) throw new ActivePartnerApplicationException(active);
+    if (!(await applications.BanksAsync(cancellationToken)).Contains(request.Payout.BankName.Trim(), StringComparer.Ordinal))
+      throw new PartnerApplicationValidationException("payout.bankName", "Select a bank from the configured bank list.");
     var now = clock.GetUtcNow();
     var id = Guid.NewGuid();
     var corporate = request.Corporate;

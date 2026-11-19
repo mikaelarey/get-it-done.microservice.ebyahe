@@ -13,9 +13,9 @@ public sealed class IncomingConfiguration : IEntityTypeConfiguration<Incoming>
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
     builder.Property(row => row.ConsumerGroup).HasMaxLength(200).IsUnicode(false).IsRequired();
-    builder.Property(row => row.Topic).HasMaxLength(249).IsUnicode(false).IsRequired();
+    builder.Navigation(row => row.TopicSetup).AutoInclude();
     builder.Property(row => row.Error).HasMaxLength(1000);
-    builder.HasIndex(row => new { row.ConsumerGroup, row.Topic, row.Partition, row.Offset }).IsUnique();
+    builder.HasIndex(row => new { row.ConsumerGroup, row.CodeDecodeTopic, row.Partition, row.Offset }).IsUnique();
     builder.HasIndex(row => row.MessageId);
     builder.HasIndex(row => row.ReceivedDateTime);
     builder.HasMany(row => row.Logs).WithOne().HasForeignKey(row => row.IncomingId)

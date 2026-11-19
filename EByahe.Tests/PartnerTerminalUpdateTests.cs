@@ -106,7 +106,7 @@ public sealed partial class SqlServerDatabaseTests
     var command = new { name = "Updated", address = "New street", isActive = false, codeDecodeRegion = 3,
       codeDecodeProvince = 2, codeDecodeMunicipality = 2, codeDecodeBarangay = 2 };
     var locations = await db.Locations.CountAsync(); var events = await db.OutboxMessages.CountAsync();
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTerminalUpdate ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='terminal.updated') THROW 51063,'Test outbox failure',1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTerminalUpdate ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='terminal.updated') THROW 51063,'Test outbox failure',1;");
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PutAsJsonAsync(path, command)).StatusCode);
     var unchanged = await db.BusTerminals.AsNoTracking().SingleAsync(row => row.Id == terminal.Id);
     Assert.Equal("Original", unchanged.Name); Assert.True(unchanged.IsActive); Assert.Equal(terminal.LocationId, unchanged.LocationId);

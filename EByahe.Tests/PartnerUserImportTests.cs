@@ -37,7 +37,7 @@ public sealed partial class SqlServerDatabaseTests {
     async Task Complete(PartnerMemberRequest request, string subject) { await using var context = CreateDatabase(); await new PartnerMemberRepository(context, Options.Create(new KafkaOptions()), MemberPasswords()).CompleteAsync(MemberReply(request, true, subject), default); }
     await Complete(requests[0], "bulk-user-one");
     Assert.Single(await db.UploadRecords.ToArrayAsync()); Assert.Empty(await db.OutboxMessages.Where(x => x.EventType == "users.imported").ToArrayAsync());
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectUserImportSummary ON OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='users.imported') THROW 51065, 'Test summary failure', 1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectUserImportSummary ON OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='users.imported') THROW 51065, 'Test summary failure', 1;");
     await Assert.ThrowsAsync<DbUpdateException>(() => Complete(requests[1], "bulk-user-two"));
     Assert.Single(await db.UploadRecords.ToArrayAsync()); Assert.Equal(2, await db.PartnerUsers.CountAsync());
     await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectUserImportSummary");

@@ -91,7 +91,7 @@ public sealed partial class SqlServerDatabaseTests
       var outbox = await db.OutboxMessages.CountAsync();
       var partners = await db.Partners.CountAsync();
       // All status events share this prefix; submission has already committed.
-      await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectStatusNotification ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType LIKE 'partner-application.%') THROW 51051, 'Test notification failure', 1;");
+      await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectStatusNotification ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode LIKE 'partner-application.%') THROW 51051, 'Test notification failure', 1;");
       using var failed = await client.PostAsJsonAsync(url + "/" + action, new { remarks = "Invalid permit" });
       Assert.Equal(HttpStatusCode.InternalServerError, failed.StatusCode);
       Assert.Equal(before.Status, (await db.PartnerApplications.AsNoTracking().SingleAsync(x => x.Id == receipt.Id)).Status);

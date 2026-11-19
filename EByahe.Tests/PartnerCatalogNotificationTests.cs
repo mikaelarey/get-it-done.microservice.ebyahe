@@ -74,7 +74,7 @@ public sealed partial class SqlServerDatabaseTests
       ("scheduled-trips", new { partnerId = partner.Id, busId = bus.Id, originTerminalId = origin.Id, destinationTerminalId = destination.Id,
         departureAtUtc = DateTimeOffset.UtcNow.AddDays(3), durationMinutes = 120, baseFare = 550m }) };
     var counts = (await db.Buses.CountAsync(), await db.BusTerminals.CountAsync(), await db.ScheduledTrips.CountAsync(), await db.BusRoutes.CountAsync(), await db.Locations.CountAsync());
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectCatalogActivity ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType IN ('bus.created','terminal.created','scheduled-trip.created')) THROW 51060,'Test outbox failure',1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectCatalogActivity ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode IN ('bus.created','terminal.created','scheduled-trip.created')) THROW 51060,'Test outbox failure',1;");
     foreach (var command in commands)
     {
       using var failed = await client.PostAsJsonAsync("/api/partner/" + command.Path, command.Body); Assert.Equal(HttpStatusCode.InternalServerError, failed.StatusCode);

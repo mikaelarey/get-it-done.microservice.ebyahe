@@ -56,7 +56,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync(api, inactive)).StatusCode);
     location.IsActive = true; await db.SaveChangesAsync();
     var other = TerminalExcelImportTests.Valid("Atomic terminal"); other[3] = "2 - Bacarra"; other[4] = "2 - Bani";
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTerminalImport ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='terminals.imported') THROW 51061,'Test outbox failure',1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTerminalImport ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='terminals.imported') THROW 51061,'Test outbox failure',1;");
     using var failed = TerminalUpload(partner.Id, other);
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PostAsync(api, failed)).StatusCode);
     Assert.Equal(5, await db.Uploads.CountAsync()); Assert.Equal(2, await db.UploadRecords.CountAsync()); Assert.Equal(2, await db.TerminalLogs.CountAsync());

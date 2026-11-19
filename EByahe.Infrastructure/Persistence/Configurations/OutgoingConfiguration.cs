@@ -12,8 +12,7 @@ public sealed class OutgoingConfiguration : IEntityTypeConfiguration<Outgoing>
       "[CodeDecodeOutgoingStatus] IN (1, 2, 3, 4, 5)"));
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
-    builder.Property(row => row.EventType).HasMaxLength(100).IsRequired();
-    builder.Property(row => row.Topic).HasMaxLength(249).IsUnicode(false).IsRequired();
+    builder.Navigation(row => row.TopicSetup).AutoInclude();
     builder.Property(row => row.MessageKey).HasMaxLength(255).IsRequired();
     builder.Property(row => row.Payload).IsRequired();
     builder.Property(row => row.Error).HasMaxLength(1000);

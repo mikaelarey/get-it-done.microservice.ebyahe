@@ -5,6 +5,7 @@ namespace EByahe.Application.Interfaces;
 
 public interface IPartnerApplicationService
 {
+  Task<IReadOnlyList<string>> BanksAsync(CancellationToken cancellationToken = default);
   Task<EByahe.Domain.DataModels.PartnerApplicationEligibility> EligibilityAsync(string userId,
     CancellationToken cancellationToken = default);
   Task<CustomerPartnerApplicationPage> ListAsync(string userId, int page, int pageSize, CancellationToken cancellationToken = default);

@@ -54,7 +54,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/partner/buses/import", invalid)).StatusCode);
     Assert.Equal(2, await db.Buses.CountAsync()); Assert.Equal(initialEvents + 1, await db.OutboxMessages.CountAsync());
     Assert.Equal(3, await db.Uploads.CountAsync()); Assert.Equal(2, await db.UploadRecords.CountAsync()); Assert.Equal(2, await db.BusLogs.CountAsync());
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectBusImport ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='buses.imported') THROW 51062,'Test outbox failure',1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectBusImport ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='buses.imported') THROW 51062,'Test outbox failure',1;");
     using var failed = BusUpload(partner.Id, ["BUS-103", "NEW-1003", "Deluxe", "40"]);
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PostAsync("/api/partner/buses/import", failed)).StatusCode);
     Assert.Equal(4, await db.Uploads.CountAsync()); Assert.Equal(2, await db.UploadRecords.CountAsync()); Assert.Equal(2, await db.BusLogs.CountAsync());

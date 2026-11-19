@@ -430,6 +430,336 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.ToTable("BusTerminals", (string)null);
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBank", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeBanks", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "BDO"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "BPI"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000003"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Metrobank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000004"),
+                            Code = 4,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Land Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000005"),
+                            Code = 5,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "PNB"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000006"),
+                            Code = 6,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "RCBC"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000007"),
+                            Code = 7,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Security Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000008"),
+                            Code = 8,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "UnionBank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000009"),
+                            Code = 9,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "BDO Unibank, Inc."
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000010"),
+                            Code = 10,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Bank of the Philippine Islands (BPI)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000011"),
+                            Code = 11,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Metropolitan Bank and Trust Company (Metrobank)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000012"),
+                            Code = 12,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Land Bank of the Philippines (LANDBANK)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000013"),
+                            Code = 13,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Philippine National Bank (PNB)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000014"),
+                            Code = 14,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Security Bank Corporation"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000015"),
+                            Code = 15,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "China Banking Corporation (China Bank)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000016"),
+                            Code = 16,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Union Bank of the Philippines (UnionBank)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000017"),
+                            Code = 17,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Rizal Commercial Banking Corporation (RCBC)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000018"),
+                            Code = 18,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Development Bank of the Philippines (DBP)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000019"),
+                            Code = 19,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Asia United Bank Corporation (AUB)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000020"),
+                            Code = 20,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Bank of Commerce"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000021"),
+                            Code = 21,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Philippine Veterans Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000022"),
+                            Code = 22,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Al-Amanah Islamic Investment Bank of the Philippines"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000023"),
+                            Code = 23,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "BPI Family Savings Bank / BPI Direct BanKo"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000024"),
+                            Code = 24,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "China Bank Savings, Inc."
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000025"),
+                            Code = 25,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Philippine Savings Bank (PSBank)"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000026"),
+                            Code = 26,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "City Savings Bank Inc."
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000027"),
+                            Code = 27,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Philippine Business Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000028"),
+                            Code = 28,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Equicom Savings Bank, Inc."
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000029"),
+                            Code = 29,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "ISLA Bank (A Thrift Bank), Inc."
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000030"),
+                            Code = 30,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Maya Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000031"),
+                            Code = 31,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "GoTyme Bank Corporation"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000032"),
+                            Code = 32,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Tonik Digital Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000033"),
+                            Code = 33,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "UnionDigital Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000034"),
+                            Code = 34,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Maribank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000035"),
+                            Code = 35,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "UNO Digital Bank"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a64-acb7-4d86-8b09-000000000036"),
+                            Code = 36,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Overseas Filipino Bank (OFBank)"
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBarangay", b =>
                 {
                     b.Property<Guid>("Id")
@@ -591,6 +921,414 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                             CreatedBy = "System",
                             DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Decode = "Air-conditioned / Direct"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBusinessCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeBusinessCategories", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("c60b60a7-5b9e-40bf-9d06-8fb38a5263fd"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Bus Operator"
+                        },
+                        new
+                        {
+                            Id = new Guid("af7f5cca-4f4a-48b1-9770-21b7e779d3eb"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Hotel"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeDocumentType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeDocumentTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("075dc7bd-87b3-4766-b600-0fb753b81d81"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Registration"
+                        },
+                        new
+                        {
+                            Id = new Guid("d6437bc2-66c5-4e52-9458-a197dcb68f6b"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "BIR"
+                        },
+                        new
+                        {
+                            Id = new Guid("4271b5bd-ab67-4797-8239-e0b953bc7c93"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Permit"
+                        },
+                        new
+                        {
+                            Id = new Guid("2184c469-e520-4a58-af41-3a66cb536e6f"),
+                            Code = 4,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Accreditation"
+                        },
+                        new
+                        {
+                            Id = new Guid("2f4a63db-e528-4ae9-a41b-fe606e520814"),
+                            Code = 5,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Bank Account Proof"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeEntityType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeEntityTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b4c11a61-acb7-4d86-8b09-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Sole Proprietorship"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a61-acb7-4d86-8b09-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Partnership"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a61-acb7-4d86-8b09-000000000003"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Corporation"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeEventType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeEventTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner-application.submitted"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner-application.under-review"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000003"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner-application.approved"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000004"),
+                            Code = 4,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner-application.declined"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000005"),
+                            Code = 5,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner.approved"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000006"),
+                            Code = 6,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner.created"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000007"),
+                            Code = 7,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner.updated"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000008"),
+                            Code = 8,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner.member.requested"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000009"),
+                            Code = 9,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "partner-user.updated"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000010"),
+                            Code = 10,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "booking.created"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000011"),
+                            Code = 11,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "bus.created"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000012"),
+                            Code = 12,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "bus.updated"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000013"),
+                            Code = 13,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "buses.imported"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000014"),
+                            Code = 14,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "terminal.created"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000015"),
+                            Code = 15,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "terminal.updated"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000016"),
+                            Code = 16,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "terminals.imported"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000017"),
+                            Code = 17,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "scheduled-trip.created"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000018"),
+                            Code = 18,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "scheduled-trip.updated"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000019"),
+                            Code = 19,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "scheduled-trips.imported"
+                        },
+                        new
+                        {
+                            Id = new Guid("93ede9f3-4a5c-498e-8613-000000000020"),
+                            Code = 20,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "users.imported"
                         });
                 });
 
@@ -1243,6 +1981,64 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.ToTable("CodeDecodeRegions", (string)null);
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b4c11a63-acb7-4d86-8b09-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Normal"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a63-acb7-4d86-8b09-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Administrator"
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1298,6 +2094,147 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                             CreatedBy = "System",
                             DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 17, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Decode = "Cancelled"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeSettlementFrequency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeSettlementFrequencies", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b4c11a62-acb7-4d86-8b09-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Daily"
+                        },
+                        new
+                        {
+                            Id = new Guid("b4c11a62-acb7-4d86-8b09-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Weekly"
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeTopic", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(249)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(249)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeTopics", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("479cf819-8d46-48a6-9479-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "get-it-done.notifications.v1"
+                        },
+                        new
+                        {
+                            Id = new Guid("479cf819-8d46-48a6-9479-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "get-it-done.ebyahe.partners.v1"
+                        },
+                        new
+                        {
+                            Id = new Guid("479cf819-8d46-48a6-9479-000000000003"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "get-it-done.ebyahe.partner-members.v1"
+                        },
+                        new
+                        {
+                            Id = new Guid("479cf819-8d46-48a6-9479-000000000004"),
+                            Code = 4,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "get-it-done.account.users.v1"
+                        },
+                        new
+                        {
+                            Id = new Guid("479cf819-8d46-48a6-9479-000000000005"),
+                            Code = 5,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 19, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "get-it-done.payment.completed.v1"
                         });
                 });
 
@@ -1385,6 +2322,9 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<int>("CodeDecodeIncomingStatus")
                         .HasColumnType("int");
 
+                    b.Property<int>("CodeDecodeTopic")
+                        .HasColumnType("int");
+
                     b.Property<string>("ConsumerGroup")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1422,21 +2362,17 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("RecordedDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Topic")
-                        .IsRequired()
-                        .HasMaxLength(249)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(249)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CodeDecodeIncomingStatus");
+
+                    b.HasIndex("CodeDecodeTopic");
 
                     b.HasIndex("MessageId");
 
                     b.HasIndex("ReceivedDateTime");
 
-                    b.HasIndex("ConsumerGroup", "Topic", "Partition", "Offset")
+                    b.HasIndex("ConsumerGroup", "CodeDecodeTopic", "Partition", "Offset")
                         .IsUnique();
 
                     b.ToTable("Incoming", null, t =>
@@ -1550,16 +2486,17 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<int>("AttemptCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("CodeDecodeEventType")
+                        .HasColumnType("int");
+
                     b.Property<int>("CodeDecodeOutboxStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeTopic")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid?>("LockToken")
                         .HasColumnType("uniqueidentifier");
@@ -1579,12 +2516,6 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Topic")
-                        .IsRequired()
-                        .HasMaxLength(249)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(249)");
-
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1592,6 +2523,10 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .UseCollation("Latin1_General_100_BIN2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CodeDecodeEventType");
+
+                    b.HasIndex("CodeDecodeTopic");
 
                     b.HasIndex("UserId");
 
@@ -1611,17 +2546,18 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<int>("AttemptCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("CodeDecodeEventType")
+                        .HasColumnType("int");
+
                     b.Property<int>("CodeDecodeOutgoingStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeTopic")
                         .HasColumnType("int");
 
                     b.Property<string>("Error")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uniqueidentifier");
@@ -1647,15 +2583,13 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("RecordedDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Topic")
-                        .IsRequired()
-                        .HasMaxLength(249)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(249)");
-
                     b.HasKey("Id");
 
+                    b.HasIndex("CodeDecodeEventType");
+
                     b.HasIndex("CodeDecodeOutgoingStatus");
+
+                    b.HasIndex("CodeDecodeTopic");
 
                     b.HasIndex("PublishedDateTime");
 
@@ -1736,35 +2670,30 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("BusinessCategory")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(32)");
-
                     b.Property<string>("BusinessName")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int?>("CodeDecodeBank")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeBusinessCategory")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeEntityType")
+                        .HasColumnType("int");
+
                     b.Property<int>("CodeDecodePartnerApplicationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeSettlementFrequency")
                         .HasColumnType("int");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .UseCollation("Latin1_General_100_BIN2");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("RepresentativeEmail")
                         .IsRequired()
@@ -1780,12 +2709,6 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("SettlementFrequency")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(16)");
 
                     b.Property<DateTimeOffset>("SubmittedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -1808,6 +2731,14 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CodeDecodeBank");
+
+                    b.HasIndex("CodeDecodeBusinessCategory");
+
+                    b.HasIndex("CodeDecodeEntityType");
+
+                    b.HasIndex("CodeDecodeSettlementFrequency");
+
                     b.HasIndex("CreatedBy")
                         .IsUnique()
                         .HasDatabaseName("UX_PartnerApplications_ActiveCreator")
@@ -1822,12 +2753,6 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
                     b.ToTable("PartnerApplications", null, t =>
                         {
-                            t.HasCheckConstraint("CK_PartnerApplications_BusinessCategory", "[BusinessCategory] IN ('hotel', 'bus-operator')");
-
-                            t.HasCheckConstraint("CK_PartnerApplications_EntityType", "[EntityType] IN ('sole-proprietorship', 'partnership', 'corporation')");
-
-                            t.HasCheckConstraint("CK_PartnerApplications_SettlementFrequency", "[SettlementFrequency] IN ('daily', 'weekly')");
-
                             t.HasCheckConstraint("CK_PartnerApplications_Status", "[CodeDecodePartnerApplicationStatus] IN (1, 2, 3, 4)");
                         });
                 });
@@ -1882,17 +2807,14 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("CodeDecodeDocumentType")
+                        .HasColumnType("int");
+
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(false)
                         .HasColumnType("varchar(100)");
-
-                    b.Property<string>("DocumentType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -1928,14 +2850,14 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PartnerApplicationId", "DocumentType")
+                    b.HasIndex("CodeDecodeDocumentType");
+
+                    b.HasIndex("PartnerApplicationId", "CodeDecodeDocumentType")
                         .IsUnique();
 
                     b.ToTable("PartnerApplicationDocuments", null, t =>
                         {
                             t.HasCheckConstraint("CK_PartnerApplicationDocuments_ContentType", "[ContentType] IN ('application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')");
-
-                            t.HasCheckConstraint("CK_PartnerApplicationDocuments_DocumentType", "[DocumentType] IN ('registration', 'bir', 'permit', 'accreditation', 'bankAccountProof')");
 
                             t.HasCheckConstraint("CK_PartnerApplicationDocuments_SizeBytes", "[SizeBytes] > 0 AND [SizeBytes] <= 10485760");
                         });
@@ -1983,10 +2905,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("BusinessCategory")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                    b.Property<int>("CodeDecodeBusinessCategory")
+                        .HasColumnType("int");
 
                     b.Property<int>("CodeDecodePartnerMemberRequestStatus")
                         .HasColumnType("int");
@@ -2035,6 +2955,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(2048)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CodeDecodeBusinessCategory");
 
                     b.HasIndex("CodeDecodePartnerMemberRequestStatus");
 
@@ -2234,6 +3156,11 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("CodeDecodeRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -2266,16 +3193,10 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasDefaultValue("Get It Done");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)")
-                        .HasDefaultValue("Normal")
-                        .UseCollation("Latin1_General_100_BIN2");
-
                     b.HasKey("Id")
                         .HasName("PK_RefUsers");
+
+                    b.HasIndex("CodeDecodeRole");
 
                     b.HasIndex("Email")
                         .IsUnique()
@@ -2285,22 +3206,19 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UX_RefUsers_ExternalUserId");
 
-                    b.ToTable("RefUsers", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_RefUsers_Role", "[Role] IN ('Administrator', 'Normal')");
-                        });
+                    b.ToTable("RefUsers", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = new Guid("00000000-0000-4000-8000-000000000001"),
+                            CodeDecodeRole = 1,
                             CreatedAtUtc = new DateTimeOffset(new DateTime(2026, 11, 17, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Email = "system@internal.getitdone.invalid",
                             ExternalUserId = "System",
                             FirstName = "System",
                             LastName = "",
-                            Provider = "System",
-                            Role = "Normal"
+                            Provider = "System"
                         });
                 });
 
@@ -2788,6 +3706,16 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Navigation("Partner");
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBank", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBarangay", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.CodeDecodeMunicipality", "Municipality")
@@ -2808,6 +3736,46 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBusClass", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeBusinessCategory", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeDocumentType", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeEntityType", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeEventType", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.RefUser", null)
                         .WithMany()
@@ -2935,7 +3903,37 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeRole", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeSettlementFrequency", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeTopic", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.RefUser", null)
                         .WithMany()
@@ -2963,6 +3961,15 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("Code")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeTopic", "TopicSetup")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeTopic")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("TopicSetup");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.IncomingLog", b =>
@@ -3018,19 +4025,49 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EByahe.Domain.Models.OutboxMessage", b =>
                 {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeEventType", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeEventType")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("EByahe.Domain.Models.CodeDecodeOutboxStatus", null)
                         .WithMany()
                         .HasForeignKey("CodeDecodeOutboxStatus")
                         .HasPrincipalKey("Code")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeTopic", "TopicSetup")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeTopic")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("TopicSetup");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.Outgoing", b =>
                 {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeEventType", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeEventType")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("EByahe.Domain.Models.CodeDecodeOutgoingStatus", null)
                         .WithMany()
                         .HasForeignKey("CodeDecodeOutgoingStatus")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeTopic", "TopicSetup")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeTopic")
                         .HasPrincipalKey("Code")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -3040,6 +4077,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasForeignKey("MessageId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("TopicSetup");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.Partner", b =>
@@ -3059,9 +4098,36 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EByahe.Domain.Models.PartnerApplication", b =>
                 {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeBank", "Bank")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBank")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeBusinessCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBusinessCategory")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeEntityType", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeEntityType")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("EByahe.Domain.Models.CodeDecodePartnerApplicationStatus", null)
                         .WithMany()
                         .HasForeignKey("CodeDecodePartnerApplicationStatus")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeSettlementFrequency", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeSettlementFrequency")
                         .HasPrincipalKey("Code")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -3071,6 +4137,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CreatedBy")
                         .HasPrincipalKey("ExternalUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Bank");
                 });
 
             modelBuilder.Entity("EByahe.Domain.Models.PartnerApplicationApproval", b =>
@@ -3104,6 +4172,13 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EByahe.Domain.Models.PartnerApplicationDocument", b =>
                 {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeDocumentType", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeDocumentType")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("EByahe.Domain.Models.PartnerApplication", null)
                         .WithMany("Documents")
                         .HasForeignKey("PartnerApplicationId")
@@ -3129,6 +4204,13 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EByahe.Domain.Models.PartnerMemberRequest", b =>
                 {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeBusinessCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBusinessCategory")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("EByahe.Domain.Models.CodeDecodePartnerMemberRequestStatus", null)
                         .WithMany()
                         .HasForeignKey("CodeDecodePartnerMemberRequestStatus")
@@ -3187,6 +4269,16 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedBy")
                         .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.RefUser", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeRole", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeRole")
+                        .HasPrincipalKey("Code")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

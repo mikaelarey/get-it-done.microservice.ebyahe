@@ -24,7 +24,7 @@ public sealed class PartnerDocumentStorageTests
     {
       BusinessCategory = "hotel",
       Corporate = new PartnerCorporateRequest { BusinessName = "Storage Test", TradeName = "Test", EntityType = "corporation", Tin = "123", Address = "Manila", RepresentativeName = "Test", RepresentativeEmail = "test@example.com", RepresentativeMobile = "+639171234567" },
-      Payout = new PartnerPayoutRequest { BankName = "Test Bank", AccountNumber = "123", AccountHolder = "Test", SettlementFrequency = "weekly" },
+      Payout = new PartnerPayoutRequest { BankName = "BDO", AccountNumber = "123", AccountHolder = "Test", SettlementFrequency = "weekly" },
       Documents = new PartnerDocumentsRequest { Registration = File("registration"), Bir = File("bir"), Permit = File("permit"), Accreditation = File("accreditation"), BankAccountProof = File("bankAccountProof") }
     };
   }
@@ -43,6 +43,7 @@ public sealed class PartnerDocumentStorageTests
     public bool FailSave { get; init; }
     public bool Committed { get; init; }
     public bool CannotCheckCommit { get; init; }
+    public Task<IReadOnlyList<string>> BanksAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>(["BDO", "BPI"]);
     public Task AddAsync(PartnerApplication application, CancellationToken cancellationToken = default)
     {
       if (ConflictOnSave) throw new ActivePartnerApplicationException(new(Guid.NewGuid(), "APP-OTHER", "Submitted"));

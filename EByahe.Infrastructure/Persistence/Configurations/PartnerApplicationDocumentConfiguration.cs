@@ -10,8 +10,6 @@ public sealed class PartnerApplicationDocumentConfiguration : IEntityTypeConfigu
   {
     builder.ToTable("PartnerApplicationDocuments", table =>
     {
-      table.HasCheckConstraint("CK_PartnerApplicationDocuments_DocumentType",
-        "[DocumentType] IN ('registration', 'bir', 'permit', 'accreditation', 'bankAccountProof')");
       table.HasCheckConstraint("CK_PartnerApplicationDocuments_ContentType",
         "[ContentType] IN ('application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')");
       table.HasCheckConstraint("CK_PartnerApplicationDocuments_SizeBytes",
@@ -19,12 +17,11 @@ public sealed class PartnerApplicationDocumentConfiguration : IEntityTypeConfigu
     });
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
-    builder.Property(row => row.DocumentType).HasMaxLength(32).IsUnicode(false).IsRequired();
     builder.Property(row => row.FileName).HasMaxLength(255).IsRequired();
     builder.Property(row => row.ContentType).HasMaxLength(100).IsUnicode(false).IsRequired();
     builder.Property(row => row.Sha256).HasMaxLength(64).IsUnicode(false).IsRequired();
     builder.Property(row => row.StorageBucket).HasMaxLength(63).IsUnicode(false).IsRequired();
     builder.Property(row => row.StorageKey).HasMaxLength(512).IsUnicode(false).IsRequired();
-    builder.HasIndex(row => new { row.PartnerApplicationId, row.DocumentType }).IsUnique();
+    builder.HasIndex(row => new { row.PartnerApplicationId, row.CodeDecodeDocumentType }).IsUnique();
   }
 }

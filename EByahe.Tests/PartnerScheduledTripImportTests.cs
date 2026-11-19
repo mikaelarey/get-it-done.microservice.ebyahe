@@ -44,7 +44,7 @@ public sealed partial class SqlServerDatabaseTests
     var details = (await client.GetFromJsonAsync<UploadDetails>("/api/partner/uploads/" + record.Id))!; Assert.Equal(2, details.TotalCount); Assert.Equal(2, details.ScheduledTrips!.Count);
     // Fail the final outbox insertion: no trip, route, audit or record link from that file can remain.
     var later = date.AddDays(3).ToString("yyyy-MM-dd");
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTripImport ON OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='scheduled-trips.imported') THROW 51077, 'Test trip import failure', 1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectTripImport ON OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='scheduled-trips.imported') THROW 51077, 'Test trip import failure', 1;");
     using var failed = TripUpload(partner.Id, (later, [ScheduledTripExcelImportTests.Values(bus.Id, destination.Id, origin.Id)]));
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PostAsync("/api/partner/scheduled-trips/import", failed)).StatusCode);
     Assert.Equal(2, await db.ScheduledTrips.CountAsync()); Assert.Single(await db.BusRoutes.ToArrayAsync()); Assert.Equal(2, await db.ScheduledTripLogs.CountAsync()); Assert.Equal(2, await db.UploadRecords.CountAsync());

@@ -13,7 +13,6 @@ public sealed class PartnerMemberRequestConfiguration : IEntityTypeConfiguration
     builder.Property(x => x.FirstName).HasMaxLength(255).IsRequired();
     builder.Property(x => x.LastName).HasMaxLength(255).IsRequired();
     builder.Property(x => x.Email).HasMaxLength(254).IsRequired();
-    builder.Property(x => x.BusinessCategory).HasMaxLength(32).IsRequired();
     builder.Property(x => x.RequestedRolesJson).HasMaxLength(2048);
     builder.Property(x => x.RequestHash).HasMaxLength(64).IsFixedLength().IsRequired();
     builder.HasIndex(x => new { x.PartnerId, x.Email }).IsUnique().HasFilter("[CodeDecodePartnerMemberRequestStatus] = 1");

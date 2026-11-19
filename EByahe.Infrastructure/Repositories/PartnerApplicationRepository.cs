@@ -36,6 +36,9 @@ public sealed class PartnerApplicationRepository(EByaheDbContext database, IReco
   public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default) =>
     database.PartnerApplications.AsNoTracking().AnyAsync(application => application.Id == id, cancellationToken);
 
+  public async Task<IReadOnlyList<string>> BanksAsync(CancellationToken cancellationToken = default) =>
+    await database.CodeDecodeBanks.AsNoTracking().OrderBy(bank => bank.Decode).Select(bank => bank.Decode).ToArrayAsync(cancellationToken);
+
   public async Task AddAsync(PartnerApplication application, CancellationToken cancellationToken = default)
   {
     if (string.IsNullOrWhiteSpace(application.CreatedBy))

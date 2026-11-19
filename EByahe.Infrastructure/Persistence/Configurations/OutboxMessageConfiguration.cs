@@ -13,8 +13,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
     builder.HasKey(row => row.Id);
     builder.Property(row => row.Id).ValueGeneratedNever();
     builder.Property(row => row.UserId).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2").IsRequired();
-    builder.Property(row => row.EventType).HasMaxLength(100).IsRequired();
-    builder.Property(row => row.Topic).HasMaxLength(249).IsUnicode(false).IsRequired();
+    builder.Navigation(row => row.TopicSetup).AutoInclude();
     builder.Property(row => row.MessageKey).HasMaxLength(255).IsRequired();
     builder.Property(row => row.Payload).IsRequired();
     builder.HasIndex(row => new { row.CodeDecodeOutboxStatus, row.NextAttemptDateTime, row.CreatedDateTime });

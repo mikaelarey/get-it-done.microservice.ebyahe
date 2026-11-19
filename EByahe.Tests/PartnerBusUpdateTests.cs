@@ -40,7 +40,7 @@ public sealed partial class SqlServerDatabaseTests
       command with { fleetNumber = " " }, command with { fleetNumber = "Bad\nvalue" }, command with { plateNumber = "Bad!" } })
       Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(path, invalid)).StatusCode);
     Assert.Equal(events, await db.OutboxMessages.CountAsync());
-    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectBusUpdate ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted WHERE EventType='bus.updated') THROW 51064,'Test outbox failure',1;");
+    await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectBusUpdate ON dbo.OutboxMessages AFTER INSERT AS IF EXISTS (SELECT 1 FROM inserted i JOIN dbo.CodeDecodeEventTypes et ON et.Code=i.CodeDecodeEventType WHERE et.Decode='bus.updated') THROW 51064,'Test outbox failure',1;");
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PutAsJsonAsync(path, command with { fleetNumber = "ROLLBACK", seatCapacity = 60 })).StatusCode);
     var saved = await db.Buses.AsNoTracking().SingleAsync(row => row.Id == bus.Id);
     Assert.Equal("UPDATED-1", saved.FleetNumber); Assert.Equal(50, saved.SeatCapacity); Assert.Equal(events, await db.OutboxMessages.CountAsync());

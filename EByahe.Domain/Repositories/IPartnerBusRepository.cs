@@ -3,7 +3,7 @@ namespace EByahe.Domain.Repositories;
 
 public interface IPartnerBusRepository
 {
-  Task<PartnerRecordsPage<PartnerPortalBus>> ListAsync(string userId, int page, int pageSize, CancellationToken cancellationToken);
+  Task<PartnerRecordsPage<PartnerPortalBus>> ListAsync(string userId, int page, int pageSize, CancellationToken cancellationToken, string? search = null);
   Task<IReadOnlyList<PartnerBusWorkspace>> WorkspacesAsync(string userId, CancellationToken cancellationToken);
   Task<IReadOnlyList<BusClassOption>> ClassesAsync(CancellationToken cancellationToken);
   Task<PartnerPortalBus?> AddAsync(string userId, AddPartnerBus command, CancellationToken cancellationToken);

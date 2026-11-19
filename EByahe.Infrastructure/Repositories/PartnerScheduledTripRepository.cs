@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class PartnerScheduledTripRepository(EByaheDbContext db, TimeProvider clock, IOptions<KafkaOptions>? kafka = null, IRecordChangePublisher? changes = null) : IPartnerScheduledTripRepository
+public sealed partial class PartnerScheduledTripRepository(EByaheDbContext db, TimeProvider clock, IOptions<KafkaOptions>? kafka = null, IRecordChangePublisher? changes = null) : IPartnerScheduledTripRepository
 {
   private IQueryable<Partner> BusOperators(string userId) => db.Partners.Where(partner => partner.Status == "Approved"
     && db.PartnerUsers.Any(member => member.PartnerId == partner.Id && member.IsActive && member.RefUser.ExternalUserId == userId)

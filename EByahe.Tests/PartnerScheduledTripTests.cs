@@ -57,7 +57,7 @@ public sealed partial class SqlServerDatabaseTests
     var options = (await client.GetFromJsonAsync<PartnerTripOptions>("/api/partner/scheduled-trips/options"))!;
     Assert.Equal(partner.Id, Assert.Single(options.Workspaces).Id); Assert.Equal(bus.Id, Assert.Single(options.Buses).Id);
     Assert.Equal(2, options.Terminals.Count); Assert.All(options.Terminals, terminal => Assert.Equal(partner.Id, terminal.PartnerId)); Assert.Empty(options.Routes);
-    var departure = DateTimeOffset.UtcNow.AddDays(3);
+    var departure = new DateTimeOffset(DateTimeOffset.UtcNow.AddDays(3).Date, TimeSpan.Zero).AddHours(1);
     var command = new { partnerId = partner.Id, busId = bus.Id, originTerminalId = origin.Id, destinationTerminalId = destination.Id,
       departureAtUtc = departure.ToOffset(TimeSpan.FromHours(8)), durationMinutes = 120, baseFare = 550.25m };
     using var created = await client.PostAsJsonAsync("/api/partner/scheduled-trips", command);
@@ -87,8 +87,8 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/partner/scheduled-trips", command with { partnerId = foreign.Id })).StatusCode);
     options = (await client.GetFromJsonAsync<PartnerTripOptions>("/api/partner/scheduled-trips/options"))!;
     Assert.Equal(route.Id, Assert.Single(options.Routes).Id);
-    var list = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTrip>>("/api/partner/scheduled-trips?pageSize=1"))!;
-    Assert.Equal(3, list.TotalCount); Assert.Single(list.Items);
+    var list = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTrip>>($"/api/partner/scheduled-trips?pageSize=1&date={departure.ToOffset(TimeSpan.FromHours(8)):yyyy-MM-dd}"))!;
+    Assert.Equal(2, list.TotalCount); Assert.Single(list.Items);
     var logs = await db.ScheduledTripLogs.ToArrayAsync(); Assert.Equal(3, logs.Length);
     Assert.All(logs, log => { Assert.Equal("Created", log.Action); Assert.Null(log.PreviousValue); Assert.Equal(PartnerApiFactory.Subject, log.CreatedBy); });
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(subject: PartnerApiFactory.Subject.ToUpperInvariant(), resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));

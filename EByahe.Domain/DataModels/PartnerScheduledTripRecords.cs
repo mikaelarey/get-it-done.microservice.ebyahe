@@ -1,6 +1,7 @@
 namespace EByahe.Domain.DataModels;
 
 public sealed record PartnerTripWorkspace(Guid Id, string Name);
+public sealed record PartnerTripFilterTerminal(Guid Id, string Name, string Location, string Partner);
 public sealed record PartnerTripBus(Guid Id, Guid PartnerId, string FleetNumber, string? PlateNumber, string BusClass, int SeatCapacity);
 public sealed record PartnerTripTerminal(Guid Id, Guid PartnerId, string Name, string Location);
 public sealed record PartnerTripRoute(Guid Id, Guid PartnerId, Guid OriginTerminalId, Guid DestinationTerminalId, int DurationMinutes);

@@ -35,6 +35,10 @@ public sealed class PartnerUserUpdatesController(IPartnerMemberRepository member
     }
     try {
       using var response = await clients.CreateClient("PartnerAccounts").SendAsync(request, ct);
+      // This caller already passed eByahe authentication. An Account rejection
+      // is a downstream authentication failure, not proof of an expired portal session.
+      if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        return Problem(statusCode: 503, title: "Account service authentication failed. Refresh the partner portal and sign in again.");
       return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = "application/json", Content = await response.Content.ReadAsStringAsync(ct) };
     } catch (Exception error) when (error is HttpRequestException || error is TaskCanceledException && !ct.IsCancellationRequested) {
       return Problem(statusCode: 503, title: "The account service is unavailable. Please try again.");

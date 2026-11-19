@@ -36,6 +36,7 @@ public sealed class PartnerMembersController(IPartnerMemberRepository members) :
     }
     catch (PartnerMemberRoleValidationException) { return BadRequest(new ProblemDetails { Title = "Select supported partner roles; write and confirm permissions require their read permission." }); }
     catch (PartnerMemberRequestConflictException) { return Conflict(new ProblemDetails { Title = "This request ID has already been used. Please reopen the form." }); }
+    catch (PartnerMemberSelfInvitationException) { return Conflict(new ProblemDetails { Title = "You cannot add yourself or change your own permissions." }); }
   }
 
   [HttpGet("requests/{id:guid}")]

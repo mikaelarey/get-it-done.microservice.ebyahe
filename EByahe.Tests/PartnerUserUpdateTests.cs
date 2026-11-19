@@ -7,8 +7,60 @@ using EByahe.Infrastructure.Messaging;
 using EByahe.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Configuration;
 namespace EByahe.Tests;
 public sealed partial class SqlServerDatabaseTests {
+  [SqlServerFact]
+  public async Task PartnerUserCannotQueueOwnInvitationToGrantPermissions()
+  {
+    var partner = await SeedMemberPartner(); await using var db = CreateDatabase();
+    var actor = await db.RefUsers.SingleAsync(user => user.ExternalUserId == PartnerApiFactory.Subject);
+    using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("member.create")));
+    using var response = await client.PostAsJsonAsync("/api/partner/users", new { requestId = Guid.NewGuid(), partnerId = partner.Id,
+      firstName = actor.FirstName, lastName = actor.LastName, email = actor.Email.ToUpperInvariant(), roles = new[] { "booking.read", "booking.confirm" } });
+    Assert.Equal(HttpStatusCode.Conflict, response.StatusCode); Assert.Contains("cannot add yourself", await response.Content.ReadAsStringAsync());
+    Assert.Empty(await db.PartnerMemberRequests.ToArrayAsync()); Assert.Empty(await db.OutboxMessages.Where(message => message.EventType == "partner.member.requested").ToArrayAsync());
+  }
+  private sealed class PartnerAccountsStub : HttpMessageHandler, IHttpClientFactory
+  {
+    public HttpStatusCode Status { get; set; } = HttpStatusCode.Unauthorized;
+    public string? ForwardedToken { get; private set; }
+    public int Calls { get; private set; }
+    public HttpClient CreateClient(string name) => new(this, false);
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+      Calls++; ForwardedToken = request.Headers.Authorization?.ToString();
+      return Task.FromResult(new HttpResponseMessage(Status) { Content = JsonContent.Create(new { firstName = "Actual", lastName = "Member", roles = new[] { "booking.read" } }) });
+    }
+  }
+  [SqlServerFact]
+  public async Task PartnerUserEditPreservesCallerTokenAndDistinguishesDownstreamAuthenticationFromExpiredSession()
+  {
+    var partner = await SeedMemberPartner(); await using var db = CreateDatabase();
+    var member = new PartnerUser { PartnerId = partner.Id, RefUser = MembershipUser("account-proxy-member") };
+    db.PartnerUsers.Add(member); await db.SaveChangesAsync();
+    using var downstream = new PartnerAccountsStub(); using var factory = new PartnerApiFactory(ConnectionString);
+    using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => {
+      services.RemoveAll<IHttpClientFactory>(); services.AddSingleton<IHttpClientFactory>(downstream);
+    }).ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?> {
+      ["PartnerAccounts:BaseUrl"] = "https://account.example" })));
+    using var client = app.CreateClient(); var token = factory.Token(resourceAccess: BusRoles("member.manage"));
+    client.DefaultRequestHeaders.Authorization = new("Bearer", token);
+    var path = "/api/partner/users/" + member.Id;
+    using var rejection = await client.GetAsync(path + "/edit");
+    Assert.Equal(HttpStatusCode.ServiceUnavailable, rejection.StatusCode);
+    Assert.Contains("Account service authentication failed", await rejection.Content.ReadAsStringAsync());
+    Assert.Equal("Bearer " + token, downstream.ForwardedToken);
+    Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PutAsJsonAsync(path, new { requestId = Guid.NewGuid() })).StatusCode);
+    downstream.Status = HttpStatusCode.OK; Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(path + "/edit")).StatusCode);
+    downstream.Status = HttpStatusCode.Forbidden; Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path + "/edit")).StatusCode);
+    var calls = downstream.Calls; client.DefaultRequestHeaders.Authorization = null;
+    Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path + "/edit")).StatusCode); Assert.Equal(calls, downstream.Calls);
+  }
   [SqlServerFact]
   public async Task PartnerUserEditRequiresExactManageRoleAndScopedActiveApprovedMembership() {
     var partner = await SeedMemberPartner(); await using var db = CreateDatabase();

@@ -148,8 +148,8 @@ public sealed partial class SqlServerDatabaseTests
     var terminals = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTerminal>>("/api/partner/terminals?pageSize=1"))!;
     var nextTerminal = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTerminal>>("/api/partner/terminals?pageSize=1&page=2"))!;
     Assert.Equal(2, terminals.TotalCount); Assert.Single(terminals.Items); Assert.Single(nextTerminal.Items); Assert.NotEqual(terminals.Items[0].Id, nextTerminal.Items[0].Id);
-    var trips = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTrip>>("/api/partner/scheduled-trips"))!;
-    Assert.Equal(2, trips.TotalCount); Assert.All(trips.Items, row => { Assert.Equal("Victory Liner", row.Partner); Assert.Equal("TST-1234", row.PlateNumber); });
+    var trips = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalTrip>>($"/api/partner/scheduled-trips?date={first.DepartureAtUtc.ToOffset(TimeSpan.FromHours(8)):yyyy-MM-dd}"))!;
+    Assert.Equal(1, trips.TotalCount); Assert.All(trips.Items, row => { Assert.Equal("Victory Liner", row.Partner); Assert.Equal("TST-1234", row.PlateNumber); });
     var users = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalUser>>("/api/partner/users"))!;
     Assert.Equal(3, users.TotalCount); Assert.Contains(users.Items, row => !row.IsActive);
     using var bookingsResponse = await client.GetAsync("/api/partner/bookings?pageSize=1");

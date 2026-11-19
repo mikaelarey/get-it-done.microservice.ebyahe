@@ -1,0 +1,7 @@
+# Partner scheduled trip filters
+
+The Scheduled Trips table defaults to today's departure date in Manila time and all terminals. The date and terminal controls sit on the right of the table header, wrapping underneath the title on smaller screens. Changing either value immediately reloads page 1; there is no filter or reset button. The terminal matches either the boarding or destination terminal. Select All terminals to clear that filter. Filters are retained in the URL, pagination links and live-update requests. No trips found indicates that no schedules match the selected filters.
+
+GET /api/partner/scheduled-trips accepts date (YYYY-MM-DD), terminalId (optional GUID), page and pageSize. An omitted date defaults to the current Manila date on the server. Past dates are allowed for browsing historical schedules. The selected day is converted to a UTC interval starting at Manila midnight, inclusive, and ending at the following Manila midnight, exclusive. Date and terminal predicates run before the database count and pagination. Trips are sorted by departure time, then ID.
+
+GET /api/partner/scheduled-trips/filter-terminals supplies terminal IDs, names, locations and partner names. It requires scheduled-trip.read, without requiring scheduled-trip.write or terminal.read. Only terminals from the caller's approved, active partner memberships are returned. Inactive terminals remain available for historical filtering. Filtering by another partner's terminal never exposes its trips. Invalid dates and terminal IDs return HTTP 400. No migration is required.

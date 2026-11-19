@@ -7,4 +7,5 @@ public interface IPartnerScheduledTripRepository
   Task<PartnerPortalTrip?> AddAsync(string userId, AddPartnerScheduledTrip command, CancellationToken cancellationToken);
   Task<PartnerScheduledTripDetails?> DetailsAsync(string userId, Guid id, CancellationToken cancellationToken);
   Task<PartnerPortalTrip?> UpdateAsync(string userId, Guid id, UpdatePartnerScheduledTrip command, CancellationToken cancellationToken);
+  Task<PartnerScheduledTripImportResult?> ImportAsync(string userId, Guid partnerId, IReadOnlyList<PartnerScheduledTripImportRow> rows, Guid uploadId, CancellationToken cancellationToken);
 }

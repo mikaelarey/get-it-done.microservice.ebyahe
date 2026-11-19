@@ -18,11 +18,14 @@ public sealed class PartnerBusRepository(EByaheDbContext db, IOptions<KafkaOptio
   private IQueryable<Partner> BusOperators(string userId) => Accessible(userId).Where(partner => db.PartnerApplications
     .Any(application => application.Id == partner.PartnerApplicationId && application.Status == "Approved" && application.BusinessCategory == "bus-operator"));
 
-  public async Task<PartnerRecordsPage<PartnerPortalBus>> ListAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
+  public async Task<PartnerRecordsPage<PartnerPortalBus>> ListAsync(string userId, int page, int pageSize, CancellationToken cancellationToken, string? search = null)
   {
     if (page is < 1 or > 1000000 || pageSize is < 1 or > 50) throw new ArgumentOutOfRangeException(nameof(page));
     var ids = Accessible(userId).Select(partner => partner.Id);
     var query = db.Buses.AsNoTracking().Where(bus => ids.Contains(bus.PartnerId));
+    foreach (var term in PartnerKeywordSearch.Tokens(search))
+      query = query.Where(bus => EF.Functions.Collate(bus.FleetNumber + " " + (bus.PlateNumber ?? "Not recorded") + " "
+        + bus.BusClass.Decode + " " + bus.SeatCapacity.ToString(), PartnerKeywordSearch.Collation).Contains(term));
     var count = await query.CountAsync(cancellationToken);
     var items = await query.OrderBy(bus => bus.Partner.DisplayName).ThenBy(bus => bus.FleetNumber).ThenBy(bus => bus.Id)
       .Skip((page - 1) * pageSize).Take(pageSize)

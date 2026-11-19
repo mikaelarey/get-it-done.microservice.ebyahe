@@ -76,6 +76,8 @@ public sealed class PartnerMemberRepository(EByaheDbContext db, IOptions<KafkaOp
       .SingleOrDefaultAsync(cancellationToken);
     var workspace = await Workspaces(userId, command.PartnerId).SingleOrDefaultAsync(cancellationToken);
     if (workspace is null) return null;
+    if (await db.RefUsers.AnyAsync(user => user.ExternalUserId == userId && user.Email == command.Email, cancellationToken))
+      throw new PartnerMemberSelfInvitationException();
     var roles = command.Roles ?? PartnerMemberRoles.Legacy(workspace.BusinessCategory);
     if (!PartnerMemberRoles.Valid(workspace.BusinessCategory, roles)) throw new PartnerMemberRoleValidationException();
     var rolesJson = JsonSerializer.Serialize(roles.Order(StringComparer.Ordinal).ToArray(), JsonOptions);

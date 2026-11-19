@@ -39,7 +39,7 @@ public sealed class PartnerBusesController(IPartnerBusRepository buses, IUploadR
 
   [HttpGet]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalBus>>> List([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
-    Ok(await buses.ListAsync(UserId, query.Page, query.PageSize, cancellationToken));
+    Ok(await buses.ListAsync(UserId, query.Page, query.PageSize, cancellationToken, query.Search));
 
   [HttpGet("workspaces"), Authorize(Policy = PartnerPortalAuthorization.WriteBusesPolicy)]
   public async Task<ActionResult<IReadOnlyList<PartnerBusWorkspace>>> Workspaces(CancellationToken cancellationToken) =>

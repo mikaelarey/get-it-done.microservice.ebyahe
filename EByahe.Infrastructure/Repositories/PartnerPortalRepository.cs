@@ -6,16 +6,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartnerPortalRepository
+public sealed partial class PartnerPortalRepository(EByaheDbContext database) : IPartnerPortalRepository
 {
   private IQueryable<Guid> PartnerIds(string userId) => database.PartnerUsers.AsNoTracking()
     .Where(member => member.IsActive && member.RefUser.ExternalUserId == userId && member.Partner.Status == "Approved")
     .Select(member => member.PartnerId).Distinct();
 
-  private IQueryable<BusBooking> Bookings(string userId)
+  private IQueryable<BusBooking> Bookings(string userId, string? search = null)
   {
     var ids = PartnerIds(userId);
-    return database.BusBookings.AsNoTracking().Where(booking =>
+    return SearchBookings(search).AsNoTracking().Where(booking =>
       database.ScheduledTrips.Any(trip => trip.Id == booking.ScheduledTripId && ids.Contains(trip.PartnerId)));
   }
 
@@ -29,16 +29,23 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
         .Select(row => row.RefUserId).Distinct().CountAsync(cancellationToken));
   }
 
-  public Task<PartnerRecordsPage<BusBooking>> BookingsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken) =>
-    Page(Bookings(userId).OrderByDescending(row => row.CreatedAtUtc).ThenBy(row => row.Id), page, pageSize, cancellationToken);
+  public Task<PartnerRecordsPage<BusBooking>> BookingsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken, string? search = null) =>
+    Page(Bookings(userId, search).OrderByDescending(row => row.CreatedAtUtc).ThenBy(row => row.Id), page, pageSize, cancellationToken);
 
   public Task<BusBooking?> BookingDetailsAsync(string userId, Guid bookingId, CancellationToken cancellationToken) =>
     Bookings(userId).SingleOrDefaultAsync(row => row.Id == bookingId, cancellationToken);
 
-  public Task<PartnerRecordsPage<PartnerPortalTerminal>> TerminalsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
+  public Task<PartnerRecordsPage<PartnerPortalTerminal>> TerminalsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken, string? search = null)
   {
     var ids = PartnerIds(userId);
-    var query = database.BusTerminals.AsNoTracking().Where(row => ids.Contains(row.PartnerId)).OrderBy(row => row.Name).ThenBy(row => row.Id)
+    var terminals = database.BusTerminals.AsNoTracking().Where(row => ids.Contains(row.PartnerId));
+    foreach (var term in PartnerKeywordSearch.Tokens(search))
+      terminals = terminals.Where(row => EF.Functions.Collate(row.Name + " " + row.Location.Name + " " + row.Address + ", "
+        + (row.Location.Barangay == null ? "" : row.Location.Barangay.Decode + ", ")
+        + (row.Location.Municipality == null ? "" : row.Location.Municipality.Decode + ", ")
+        + (row.Location.Province == null ? "" : row.Location.Province.Decode + ", ")
+        + (row.Location.Region == null ? "" : row.Location.Region.Decode), PartnerKeywordSearch.Collation).Contains(term));
+    var query = terminals.OrderBy(row => row.Name).ThenBy(row => row.Id)
       .Select(row => new PartnerPortalTerminal(row.Id, row.Name, row.Location.Name,
         TerminalAddress.Format(row.Address, row.Location.Barangay == null ? null : row.Location.Barangay.Decode,
           row.Location.Municipality == null ? null : row.Location.Municipality.Decode,
@@ -47,20 +54,39 @@ public sealed class PartnerPortalRepository(EByaheDbContext database) : IPartner
     return Page(query, page, pageSize, cancellationToken);
   }
 
-  public Task<PartnerRecordsPage<PartnerPortalTrip>> TripsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
+  public async Task<IReadOnlyList<PartnerTripFilterTerminal>> TripFilterTerminalsAsync(string userId, CancellationToken cancellationToken)
   {
     var ids = PartnerIds(userId);
-    var query = database.ScheduledTrips.AsNoTracking().Where(row => ids.Contains(row.PartnerId)).OrderByDescending(row => row.DepartureAtUtc).ThenBy(row => row.Id)
+    // Include inactive terminals so historical schedules can still be filtered.
+    return await database.BusTerminals.AsNoTracking().Where(terminal => ids.Contains(terminal.PartnerId))
+      .OrderBy(terminal => terminal.Name).ThenBy(terminal => terminal.Partner.DisplayName).ThenBy(terminal => terminal.Id)
+      .Select(terminal => new PartnerTripFilterTerminal(terminal.Id, terminal.Name, terminal.Location.Name, terminal.Partner.DisplayName))
+      .ToArrayAsync(cancellationToken);
+  }
+
+  public Task<PartnerRecordsPage<PartnerPortalTrip>> TripsAsync(string userId, int page, int pageSize, DateOnly date, Guid? terminalId, CancellationToken cancellationToken)
+  {
+    var ids = PartnerIds(userId);
+    var start = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(8)).ToUniversalTime();
+    var end = start.AddDays(1);
+    var query = database.ScheduledTrips.AsNoTracking().Where(row => ids.Contains(row.PartnerId)
+        && row.DepartureAtUtc >= start && row.DepartureAtUtc < end
+        && (!terminalId.HasValue || row.BusRoute.OriginTerminalId == terminalId || row.BusRoute.DestinationTerminalId == terminalId))
+      .OrderBy(row => row.DepartureAtUtc).ThenBy(row => row.Id)
       .Select(row => new PartnerPortalTrip(row.Id, row.BusRoute.OriginTerminal.Location.Name, row.BusRoute.DestinationTerminal.Location.Name,
         row.Partner.DisplayName, row.Bus.PlateNumber, row.Bus.BusClass.Decode, row.DepartureAtUtc, row.AvailableSeats, row.BaseFare, row.Status));
     return Page(query, page, pageSize, cancellationToken);
   }
 
-  public Task<PartnerRecordsPage<PartnerPortalUser>> UsersAsync(string userId, int page, int pageSize, bool includeTemporaryPasswords, CancellationToken cancellationToken)
+  public Task<PartnerRecordsPage<PartnerPortalUser>> UsersAsync(string userId, int page, int pageSize, bool includeTemporaryPasswords, CancellationToken cancellationToken, string? search = null)
   {
     var ids = PartnerIds(userId);
     var now = DateTimeOffset.UtcNow;
-    var query = database.PartnerUsers.AsNoTracking().Where(row => ids.Contains(row.PartnerId))
+    var users = database.PartnerUsers.AsNoTracking().Where(row => ids.Contains(row.PartnerId));
+    foreach (var term in PartnerKeywordSearch.Tokens(search))
+      users = users.Where(row => EF.Functions.Collate(row.RefUser.FirstName + " " + row.RefUser.LastName + " " + row.RefUser.Email,
+        PartnerKeywordSearch.Collation).Contains(term));
+    var query = users
       .OrderBy(row => row.RefUser.FirstName).ThenBy(row => row.RefUser.LastName).ThenBy(row => row.Id)
       .Select(row => new PartnerPortalUser(row.Id, (row.RefUser.FirstName + " " + row.RefUser.LastName).Trim(),
         row.RefUser.Email, row.Partner.DisplayName, row.IsActive,

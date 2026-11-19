@@ -266,6 +266,10 @@ public sealed partial class SqlServerDatabaseTests
       ["corporate.entityType"] = entity,
       ["corporate.tin"] = "123-456-789",
       ["corporate.address"] = "123 Test Street, Manila",
+      ["corporate.codeDecodeRegion"] = "3",
+      ["corporate.codeDecodeProvince"] = "2",
+      ["corporate.codeDecodeMunicipality"] = "1",
+      ["corporate.codeDecodeBarangay"] = "1",
       ["corporate.representativeName"] = "Maria Santos",
       ["corporate.representativeEmail"] = "maria@example.com",
       ["corporate.representativeMobile"] = "+63 917 123 4567",
@@ -309,7 +313,9 @@ public sealed partial class SqlServerDatabaseTests
       Assert.Equal("Example Partner Company", application.BusinessName);
       Assert.Equal("Example Partner", application.TradeName);
       Assert.Equal("123-456-789", application.Tin);
-      Assert.Equal("123 Test Street, Manila", application.Address);
+      Assert.Equal("123 Test Street, Manila, Adams (Pob.), Adams, Ilocos Norte, Region I", application.Address);
+      Assert.Equal(3, application.CodeDecodeRegion); Assert.Equal(2, application.CodeDecodeProvince);
+      Assert.Equal(1, application.CodeDecodeMunicipality); Assert.Equal(1, application.CodeDecodeBarangay);
       Assert.Equal("Maria Santos", application.RepresentativeName);
       Assert.Equal("maria@example.com", application.RepresentativeEmail);
       Assert.Equal("+63 917 123 4567", application.RepresentativeMobile);
@@ -357,7 +363,7 @@ public sealed partial class SqlServerDatabaseTests
   {
     using var factory = new PartnerApiFactory(ConnectionString);
     using var client = factory.AuthenticatedClient();
-    foreach (var field in new[] { "corporate.businessName", "payout.accountNumber", "documents.registration", "documents.bir", "documents.permit", "documents.accreditation", "documents.bankAccountProof" })
+    foreach (var field in new[] { "corporate.businessName", "corporate.codeDecodeRegion", "corporate.codeDecodeProvince", "corporate.codeDecodeMunicipality", "corporate.codeDecodeBarangay", "payout.accountNumber", "documents.registration", "documents.bir", "documents.permit", "documents.accreditation", "documents.bankAccountProof" })
     {
       using var form = ApplicationForm(omit: field);
       using var response = await client.PostAsync("/api/partner-applications", form);

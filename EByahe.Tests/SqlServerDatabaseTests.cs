@@ -38,7 +38,10 @@ public sealed partial class SqlServerDatabaseTests : IAsyncLifetime
       ["ConnectionStrings:EByaheDatabase"] = ConnectionString
     }).Build();
     services = new ServiceCollection().AddLogging().AddInfrastructure(configuration).BuildServiceProvider();
-    await services.InitializeInfrastructureAsync();
+    await using var scope = services.CreateAsyncScope();
+    // Fresh test databases seed over 42,000 barangays; allow for cold SQL Server startup.
+    scope.ServiceProvider.GetRequiredService<EByaheDbContext>().Database.SetCommandTimeout(120);
+    await scope.ServiceProvider.GetRequiredService<EByahe.Infrastructure.Initialization.EByaheInitializer>().InitializeAsync();
   }
 
   public async Task DisposeAsync()

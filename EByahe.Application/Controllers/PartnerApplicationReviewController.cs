@@ -37,14 +37,14 @@ public sealed class PartnerApplicationReviewController(IPartnerApplicationReview
     if (string.IsNullOrWhiteSpace(reviewer)) return Unauthorized();
     if (status == "Rejected" && string.IsNullOrWhiteSpace(remarks))
     {
-      ModelState.AddModelError(nameof(PartnerApplicationDecisionRequest.Remarks), "Remarks are required when declining an application.");
+      ModelState.AddModelError(nameof(PartnerApplicationDecisionRequest.Remarks), "Remarks are required when rejecting an application.");
       return ValidationProblem(ModelState);
     }
     var result = await applications.DecideAsync(id, status, reviewer, remarks, cancellationToken);
     if (result.Application is null) return NotFound();
     if (result.Conflict) return Conflict(new ProblemDetails { Status = StatusCodes.Status409Conflict,
       Title = "The application cannot be updated.", Detail = result.ConflictReason
-        ?? "Start a review before approving or declining. Reload the application to see its current status." });
+        ?? "Start a review before approving or rejecting. Reload the application to see its current status." });
     return Ok(PartnerApplicationService.MapDetails(result.Application));
   }
 

@@ -19,6 +19,11 @@ public sealed class PartnerApplication
   public string EntityType { get => CodeDecodeValues.Decode("EntityTypes", CodeDecodeEntityType); set => CodeDecodeEntityType = CodeDecodeValues.Code("EntityTypes", value); }
   public string Tin { get; set; } = string.Empty;
   public string Address { get; set; } = string.Empty;
+  // Nullable for applications submitted before structured corporate addresses.
+  public int? CodeDecodeRegion { get; set; }
+  public int? CodeDecodeProvince { get; set; }
+  public int? CodeDecodeMunicipality { get; set; }
+  public int? CodeDecodeBarangay { get; set; }
   public string RepresentativeName { get; set; } = string.Empty;
   public string RepresentativeEmail { get; set; } = string.Empty;
   public string RepresentativeMobile { get; set; } = string.Empty;

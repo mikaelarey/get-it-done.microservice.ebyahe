@@ -10,7 +10,7 @@ internal static class PartnerApplicationStatusOutbox
     {
       "UnderReview" => ("partner-application.under-review", "Started reviewing a partner application."),
       "Approved" => ("partner-application.approved", "Approved a partner application."),
-      "Rejected" => ("partner-application.declined", "Declined a partner application."),
+      "Rejected" => ("partner-application.declined", "Rejected a partner application."),
       _ => throw new ArgumentOutOfRangeException(nameof(decision))
     };
     // Reuse the immutable decision ID for deduplication. The reviewer is the actor;

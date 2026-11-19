@@ -10,6 +10,10 @@ public sealed class PartnerApplicationConfiguration : IEntityTypeConfiguration<P
   {
     builder.ToTable("PartnerApplications", table =>
     {
+      table.HasCheckConstraint("CK_PartnerApplications_Geography", """
+        ([CodeDecodeRegion] IS NULL AND [CodeDecodeProvince] IS NULL AND [CodeDecodeMunicipality] IS NULL AND [CodeDecodeBarangay] IS NULL)
+        OR ([CodeDecodeRegion] IS NOT NULL AND [CodeDecodeProvince] IS NOT NULL AND [CodeDecodeMunicipality] IS NOT NULL AND [CodeDecodeBarangay] IS NOT NULL)
+        """);
       table.HasCheckConstraint("CK_PartnerApplications_Status", "[CodeDecodePartnerApplicationStatus] IN (1, 2, 3, 4)");
     });
     builder.HasKey(row => row.Id);
@@ -23,6 +27,14 @@ public sealed class PartnerApplicationConfiguration : IEntityTypeConfiguration<P
     builder.Property(row => row.BusinessName).HasMaxLength(255).IsRequired();
     builder.Property(row => row.TradeName).HasMaxLength(255).IsRequired();
     builder.Property(row => row.Tin).HasMaxLength(32).IsRequired();
+    builder.HasOne<CodeDecodeRegion>().WithMany().HasForeignKey(row => row.CodeDecodeRegion)
+      .HasPrincipalKey(row => row.Code).OnDelete(DeleteBehavior.Restrict);
+    builder.HasOne<CodeDecodeProvince>().WithMany().HasForeignKey(row => new { row.CodeDecodeProvince, row.CodeDecodeRegion })
+      .HasPrincipalKey(row => new { row.Code, row.CodeDecodeRegion }).OnDelete(DeleteBehavior.Restrict);
+    builder.HasOne<CodeDecodeMunicipality>().WithMany().HasForeignKey(row => new { row.CodeDecodeMunicipality, row.CodeDecodeProvince })
+      .HasPrincipalKey(row => new { row.Code, row.CodeDecodeProvince }).OnDelete(DeleteBehavior.Restrict);
+    builder.HasOne<CodeDecodeBarangay>().WithMany().HasForeignKey(row => new { row.CodeDecodeBarangay, row.CodeDecodeMunicipality })
+      .HasPrincipalKey(row => new { row.Code, row.CodeDecodeMunicipality }).OnDelete(DeleteBehavior.Restrict);
     builder.Property(row => row.Address).HasMaxLength(2000).IsRequired();
     builder.Property(row => row.RepresentativeName).HasMaxLength(255).IsRequired();
     builder.Property(row => row.RepresentativeEmail).HasMaxLength(254).IsRequired();

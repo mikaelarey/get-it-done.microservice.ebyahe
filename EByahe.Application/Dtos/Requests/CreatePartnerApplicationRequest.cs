@@ -18,6 +18,10 @@ public sealed class PartnerCorporateRequest
   [Required, RegularExpression("^(sole-proprietorship|partnership|corporation)$")]
   public string EntityType { get; set; } = string.Empty;
   [Required, StringLength(32)] public string Tin { get; set; } = string.Empty;
+  [Required, Range(1, int.MaxValue)] public int? CodeDecodeRegion { get; set; }
+  [Required, Range(1, int.MaxValue)] public int? CodeDecodeProvince { get; set; }
+  [Required, Range(1, int.MaxValue)] public int? CodeDecodeMunicipality { get; set; }
+  [Required, Range(1, int.MaxValue)] public int? CodeDecodeBarangay { get; set; }
   [Required, StringLength(2000)] public string Address { get; set; } = string.Empty;
   [Required, StringLength(255)] public string RepresentativeName { get; set; } = string.Empty;
   [Required, StringLength(254), EmailAddress] public string RepresentativeEmail { get; set; } = string.Empty;

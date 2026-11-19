@@ -95,7 +95,8 @@ public sealed partial class PartnerPortalRepository(EByaheDbContext database) : 
             password.Request.Status == "Completed" && password.Request.CreatedBy == userId &&
             password.Request.PartnerId == row.PartnerId && password.Request.RefUserId == row.RefUserId)
           .OrderByDescending(password => password.CreatedAtUtc).ThenBy(password => password.Id)
-          .Select(password => (Guid?)password.RequestId).FirstOrDefault() : null));
+          .Select(password => (Guid?)password.RequestId).FirstOrDefault() : null,
+        row.RefUser.ExternalUserId == userId));
     return Page(query, page, pageSize, cancellationToken);
   }
 

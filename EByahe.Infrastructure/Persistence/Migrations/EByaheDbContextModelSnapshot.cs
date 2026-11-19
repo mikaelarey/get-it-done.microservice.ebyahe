@@ -2678,13 +2678,25 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<int?>("CodeDecodeBank")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CodeDecodeBarangay")
+                        .HasColumnType("int");
+
                     b.Property<int>("CodeDecodeBusinessCategory")
                         .HasColumnType("int");
 
                     b.Property<int>("CodeDecodeEntityType")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CodeDecodeMunicipality")
+                        .HasColumnType("int");
+
                     b.Property<int>("CodeDecodePartnerApplicationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CodeDecodeProvince")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CodeDecodeRegion")
                         .HasColumnType("int");
 
                     b.Property<int>("CodeDecodeSettlementFrequency")
@@ -2737,6 +2749,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CodeDecodeEntityType");
 
+                    b.HasIndex("CodeDecodeRegion");
+
                     b.HasIndex("CodeDecodeSettlementFrequency");
 
                     b.HasIndex("CreatedBy")
@@ -2747,12 +2761,20 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.HasIndex("TrackingId")
                         .IsUnique();
 
+                    b.HasIndex("CodeDecodeBarangay", "CodeDecodeMunicipality");
+
+                    b.HasIndex("CodeDecodeMunicipality", "CodeDecodeProvince");
+
                     b.HasIndex("CodeDecodePartnerApplicationStatus", "SubmittedAtUtc");
+
+                    b.HasIndex("CodeDecodeProvince", "CodeDecodeRegion");
 
                     b.HasIndex("CreatedBy", "SubmittedAtUtc");
 
                     b.ToTable("PartnerApplications", null, t =>
                         {
+                            t.HasCheckConstraint("CK_PartnerApplications_Geography", "([CodeDecodeRegion] IS NULL AND [CodeDecodeProvince] IS NULL AND [CodeDecodeMunicipality] IS NULL AND [CodeDecodeBarangay] IS NULL)\nOR ([CodeDecodeRegion] IS NOT NULL AND [CodeDecodeProvince] IS NOT NULL AND [CodeDecodeMunicipality] IS NOT NULL AND [CodeDecodeBarangay] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_PartnerApplications_Status", "[CodeDecodePartnerApplicationStatus] IN (1, 2, 3, 4)");
                         });
                 });
@@ -4125,6 +4147,12 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeRegion", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeRegion")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EByahe.Domain.Models.CodeDecodeSettlementFrequency", null)
                         .WithMany()
                         .HasForeignKey("CodeDecodeSettlementFrequency")
@@ -4136,6 +4164,24 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedBy")
                         .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeBarangay", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBarangay", "CodeDecodeMunicipality")
+                        .HasPrincipalKey("Code", "CodeDecodeMunicipality")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeMunicipality", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeMunicipality", "CodeDecodeProvince")
+                        .HasPrincipalKey("Code", "CodeDecodeProvince")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeProvince", null)
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeProvince", "CodeDecodeRegion")
+                        .HasPrincipalKey("Code", "CodeDecodeRegion")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Bank");

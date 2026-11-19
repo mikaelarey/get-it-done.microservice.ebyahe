@@ -23,7 +23,7 @@ public sealed class PartnerDocumentStorageTests
     return new CreatePartnerApplicationRequest
     {
       BusinessCategory = "hotel",
-      Corporate = new PartnerCorporateRequest { BusinessName = "Storage Test", TradeName = "Test", EntityType = "corporation", Tin = "123", Address = "Manila", RepresentativeName = "Test", RepresentativeEmail = "test@example.com", RepresentativeMobile = "+639171234567" },
+      Corporate = new PartnerCorporateRequest { CodeDecodeRegion = 1, CodeDecodeProvince = 1, CodeDecodeMunicipality = 1, CodeDecodeBarangay = 1, BusinessName = "Storage Test", TradeName = "Test", EntityType = "corporation", Tin = "123", Address = "Manila", RepresentativeName = "Test", RepresentativeEmail = "test@example.com", RepresentativeMobile = "+639171234567" },
       Payout = new PartnerPayoutRequest { BankName = "BDO", AccountNumber = "123", AccountHolder = "Test", SettlementFrequency = "weekly" },
       Documents = new PartnerDocumentsRequest { Registration = File("registration"), Bir = File("bir"), Permit = File("permit"), Accreditation = File("accreditation"), BankAccountProof = File("bankAccountProof") }
     };
@@ -44,6 +44,10 @@ public sealed class PartnerDocumentStorageTests
     public bool Committed { get; init; }
     public bool CannotCheckCommit { get; init; }
     public Task<IReadOnlyList<string>> BanksAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>(["BDO", "BPI"]);
+    public Task<IReadOnlyList<EByahe.Domain.DataModels.GeographyOption>> GeographyAsync(string level, int? parent, CancellationToken cancellationToken = default) =>
+      Task.FromResult<IReadOnlyList<EByahe.Domain.DataModels.GeographyOption>>([]);
+    public Task<string?> CorporateAddressAsync(int region, int province, int municipality, int barangay, string street, CancellationToken cancellationToken = default) =>
+      Task.FromResult<string?>(street);
     public Task AddAsync(PartnerApplication application, CancellationToken cancellationToken = default)
     {
       if (ConflictOnSave) throw new ActivePartnerApplicationException(new(Guid.NewGuid(), "APP-OTHER", "Submitted"));

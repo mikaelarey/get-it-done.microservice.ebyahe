@@ -152,6 +152,8 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(1, trips.TotalCount); Assert.All(trips.Items, row => { Assert.Equal("Victory Liner", row.Partner); Assert.Equal("TST-1234", row.PlateNumber); });
     var users = (await client.GetFromJsonAsync<PartnerRecordsPage<PartnerPortalUser>>("/api/partner/users"))!;
     Assert.Equal(3, users.TotalCount); Assert.Contains(users.Items, row => !row.IsActive);
+    Assert.Equal(membership.Id, Assert.Single(users.Items, row => row.IsCurrentUser).Id);
+    Assert.All(users.Items.Where(row => row.Id != membership.Id), row => Assert.False(row.IsCurrentUser));
     using var bookingsResponse = await client.GetAsync("/api/partner/bookings?pageSize=1");
     var bookings = (await bookingsResponse.Content.ReadFromJsonAsync<PartnerRecordsPage<AdminBusBookingSummary>>())!;
     Assert.Equal(2, bookings.TotalCount); Assert.Single(bookings.Items);

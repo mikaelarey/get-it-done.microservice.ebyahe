@@ -82,16 +82,27 @@ public sealed class PartnerApplicationService(IPartnerApplicationRepository appl
     if (active is not null) throw new ActivePartnerApplicationException(active);
     if (!(await applications.BanksAsync(cancellationToken)).Contains(request.Payout.BankName.Trim(), StringComparer.Ordinal))
       throw new PartnerApplicationValidationException("payout.bankName", "Select a bank from the configured bank list.");
+    var corporate = request.Corporate;
+    if (corporate.CodeDecodeRegion is not > 0 || corporate.CodeDecodeProvince is not > 0
+      || corporate.CodeDecodeMunicipality is not > 0 || corporate.CodeDecodeBarangay is not > 0)
+      throw new PartnerApplicationValidationException("corporate.codeDecodeRegion", "Select all four address locations.");
+    var address = await applications.CorporateAddressAsync(corporate.CodeDecodeRegion.Value, corporate.CodeDecodeProvince.Value,
+      corporate.CodeDecodeMunicipality.Value, corporate.CodeDecodeBarangay.Value, corporate.Address, cancellationToken);
+    if (address is null)
+      throw new PartnerApplicationValidationException("corporate.codeDecodeBarangay", "Select a barangay belonging to the selected region, province and city/municipality.");
+    if (address.Length > 2000)
+      throw new PartnerApplicationValidationException("corporate.address", "The complete address must be at most 2000 characters.");
     var now = clock.GetUtcNow();
     var id = Guid.NewGuid();
-    var corporate = request.Corporate;
     var payout = request.Payout;
     var application = new PartnerApplication
     {
       Id = id, TrackingId = $"APP-{id:N}".ToUpperInvariant(), SubmittedAtUtc = now, CreatedBy = createdBy,
       BusinessCategory = request.BusinessCategory, BusinessName = corporate.BusinessName.Trim(),
       TradeName = corporate.TradeName.Trim(), EntityType = corporate.EntityType, Tin = corporate.Tin.Trim(),
-      Address = corporate.Address.Trim(), RepresentativeName = corporate.RepresentativeName.Trim(),
+      CodeDecodeRegion = corporate.CodeDecodeRegion, CodeDecodeProvince = corporate.CodeDecodeProvince,
+      CodeDecodeMunicipality = corporate.CodeDecodeMunicipality, CodeDecodeBarangay = corporate.CodeDecodeBarangay,
+      Address = address, RepresentativeName = corporate.RepresentativeName.Trim(),
       RepresentativeEmail = corporate.RepresentativeEmail.Trim(), RepresentativeMobile = corporate.RepresentativeMobile.Trim(),
       BankName = payout.BankName.Trim(), AccountNumber = payout.AccountNumber.Trim(),
       AccountHolder = payout.AccountHolder.Trim(), SettlementFrequency = payout.SettlementFrequency

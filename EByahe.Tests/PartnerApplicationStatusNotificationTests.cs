@@ -46,7 +46,7 @@ public sealed partial class SqlServerDatabaseTests
         {
           "UnderReview" => ("under-review", "Started reviewing a partner application."),
           "Approved" => ("approved", "Approved a partner application."),
-          _ => ("declined", "Declined a partner application.")
+          _ => ("declined", "Rejected a partner application.")
         };
         Assert.Equal("partner-application." + type, message.EventType);
         Assert.Equal("get-it-done.notifications.v1", message.Topic);

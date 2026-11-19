@@ -1,0 +1,9 @@
+# Corporate application address
+
+The corporate-details step requires Region, Province, City / Municipality, Barangay, and a street / building address. The four dropdowns use the existing CodeDecodeRegions, CodeDecodeProvinces, CodeDecodeMunicipalities and CodeDecodeBarangays data. Child lists are fetched only for the selected parent. Changing a parent resets its descendants and cancels stale requests.
+
+Authenticated applicants can GET /api/partner-applications/regions, /provinces?codeDecodeRegion=..., /municipalities?codeDecodeProvince=..., and /barangays?codeDecodeMunicipality=.... Partner membership or terminal-management roles are not required. Returned options contain code and decode. Child endpoints require a positive parent code; an unknown parent returns an empty list.
+
+Multipart POST /api/partner-applications requires corporate.codeDecodeRegion, corporate.codeDecodeProvince, corporate.codeDecodeMunicipality, corporate.codeDecodeBarangay and corporate.address (street / building only). The service validates the complete hierarchy before reading or storing documents. It composes the saved Address as street, barangay, city / municipality, province, region, using database labels. The complete saved address may contain up to 2000 characters. Existing customer and admin views therefore show the complete address without changing their response shape.
+
+Migration 20261119153340_LinkPartnerApplicationsToCodeDecodeGeography adds four nullable integer columns to PartnerApplications. New API submissions require all four. Legacy rows retain their original Address and null geography. Composite foreign keys enforce each parent-child relationship; a check constraint requires all codes together or all null. Delete behavior is Restrict. Downgrade removes the relationships and code columns while retaining Address, including the formatted address for new applications. Application history snapshots include the new code properties.

@@ -39,6 +39,27 @@ public sealed class PartnerApplicationRepository(EByaheDbContext database, IReco
   public async Task<IReadOnlyList<string>> BanksAsync(CancellationToken cancellationToken = default) =>
     await database.CodeDecodeBanks.AsNoTracking().OrderBy(bank => bank.Decode).Select(bank => bank.Decode).ToArrayAsync(cancellationToken);
 
+  public async Task<IReadOnlyList<GeographyOption>> GeographyAsync(string level, int? parent, CancellationToken cancellationToken = default) =>
+    await (level switch
+    {
+      "regions" => database.CodeDecodeRegions.AsNoTracking().OrderBy(row => row.Decode).ThenBy(row => row.Code).Select(row => new GeographyOption(row.Code, row.Decode)),
+      "provinces" => database.CodeDecodeProvinces.AsNoTracking().Where(row => row.CodeDecodeRegion == parent).OrderBy(row => row.Decode).ThenBy(row => row.Code).Select(row => new GeographyOption(row.Code, row.Decode)),
+      "municipalities" => database.CodeDecodeMunicipalities.AsNoTracking().Where(row => row.CodeDecodeProvince == parent).OrderBy(row => row.Decode).ThenBy(row => row.Code).Select(row => new GeographyOption(row.Code, row.Decode)),
+      "barangays" => database.CodeDecodeBarangays.AsNoTracking().Where(row => row.CodeDecodeMunicipality == parent).OrderBy(row => row.Decode).ThenBy(row => row.Code).Select(row => new GeographyOption(row.Code, row.Decode)),
+      _ => throw new ArgumentOutOfRangeException(nameof(level))
+    }).ToArrayAsync(cancellationToken);
+
+  public async Task<string?> CorporateAddressAsync(int region, int province, int municipality, int barangay, string street,
+    CancellationToken cancellationToken = default)
+  {
+    var names = await database.CodeDecodeBarangays.AsNoTracking()
+      .Where(row => row.Code == barangay && row.CodeDecodeMunicipality == municipality
+        && row.Municipality.CodeDecodeProvince == province && row.Municipality.Province.CodeDecodeRegion == region)
+      .Select(row => new { Barangay = row.Decode, City = row.Municipality.Decode, Province = row.Municipality.Province.Decode,
+        Region = row.Municipality.Province.Region.Decode }).SingleOrDefaultAsync(cancellationToken);
+    return names is null ? null : string.Join(", ", street.Trim(), names.Barangay, names.City, names.Province, names.Region);
+  }
+
   public async Task AddAsync(PartnerApplication application, CancellationToken cancellationToken = default)
   {
     if (string.IsNullOrWhiteSpace(application.CreatedBy))

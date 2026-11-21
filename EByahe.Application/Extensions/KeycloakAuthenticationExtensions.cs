@@ -76,6 +76,12 @@ public static class KeycloakAuthenticationExtensions
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadBusesPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadBuses(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadHotelsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadHotels(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteHotelsPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+          EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteHotels(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteBusesPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteBuses(context.User)));

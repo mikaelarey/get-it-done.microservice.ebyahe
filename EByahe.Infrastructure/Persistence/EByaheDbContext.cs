@@ -29,6 +29,9 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   public DbSet<Location> Locations => Set<Location>();
   public DbSet<BusTerminal> BusTerminals => Set<BusTerminal>();
   public DbSet<Bus> Buses => Set<Bus>();
+  public DbSet<Hotel> Hotels => Set<Hotel>();
+  public DbSet<HotelLog> HotelLogs => Set<HotelLog>();
+  public DbSet<HotelBooking> HotelBookings => Set<HotelBooking>();
   public DbSet<CodeDecodeBusClass> CodeDecodeBusClasses => Set<CodeDecodeBusClass>();
   public DbSet<CodeDecodeRegion> CodeDecodeRegions => Set<CodeDecodeRegion>();
   public DbSet<CodeDecodeProvince> CodeDecodeProvinces => Set<CodeDecodeProvince>();
@@ -117,8 +120,10 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
 
   private void EnsureAppendOnlyLogs()
   {
+    if (ChangeTracker.Entries<Hotel>().Any(entry => entry.State == EntityState.Deleted))
+      throw new InvalidOperationException("Hotels cannot be physically deleted. Set the deletion flag instead.");
     if (ChangeTracker.Entries().Any(entry => entry.Entity is EByahe.Domain.Models.Outgoing or IncomingLog
-        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog or BusLog or TerminalLog or ScheduledTripLog or Upload or UploadRecord or UploadMemberRequest
+        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog or BusLog or TerminalLog or ScheduledTripLog or HotelLog or Upload or UploadRecord or UploadMemberRequest
       && entry.State is EntityState.Modified or EntityState.Deleted))
       throw new InvalidOperationException("Log and approval entries are append-only; add a new status entry instead.");
   }

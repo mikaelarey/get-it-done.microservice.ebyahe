@@ -42,7 +42,7 @@ public static class UserExcelTemplate {
         ["Getting started", "Enter one user on each row of Users, starting at row 2. Keep the header row unchanged."],
         ["Limits", "Maximum 500 users per file; .xlsx only; maximum 5 MB. Do not use formulas."],
         ["Required fields", "First name, Last name, Email address. Do not repeat email addresses."],
-        ["Default access", "Bus operator users receive View bookings, View buses and View terminals, plus the standard Partner portal and account roles. Permissions are assigned automatically."],
+        ["Default access", "Bus operator users receive View bookings, View buses and View terminals. Hotel users receive View bookings, View hotels and View rooms. Both receive the standard Partner portal and account roles. Permissions are assigned automatically."],
         ["Partner", "Select the partner in the upload dialog."],
         ["Existing accounts", "Existing accounts keep their profile and password. Default view permissions are added; existing permissions are retained."],
         ["New accounts", "A temporary password is generated securely. The original uploader can reveal it in user details."],

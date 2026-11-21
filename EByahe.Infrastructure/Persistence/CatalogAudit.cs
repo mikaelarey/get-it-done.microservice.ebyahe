@@ -7,6 +7,15 @@ internal static class CatalogAudit
 {
   private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+  public static string Snapshot(Hotel hotel) => JsonSerializer.Serialize(new { hotel.Id, hotel.PartnerId, hotel.Name,
+    hotel.Address, hotel.CodeDecodeRegion, hotel.CodeDecodeProvince, hotel.CodeDecodeMunicipality, hotel.CodeDecodeBarangay,
+    hotel.ContactNumber, hotel.Email, hotel.Description, hotel.IsActive, hotel.IsDeleted, hotel.DeletedBy, hotel.DeletedAtUtc,
+    hotel.CreatedBy, hotel.CreatedAtUtc }, JsonOptions);
+
+  public static void Record(EByaheDbContext db, Hotel hotel, string actor, string action, string? previous = null) =>
+    db.HotelLogs.Add(new HotelLog { HotelId = hotel.Id, CreatedBy = actor, Action = action,
+      PreviousValue = previous, CurrentValue = Snapshot(hotel) });
+
   public static string Snapshot(Bus bus) => JsonSerializer.Serialize(new { bus.Id, bus.PartnerId, bus.FleetNumber,
     bus.PlateNumber, bus.CodeDecodeBusClass, busClass = bus.BusClass.Decode, bus.SeatCapacity, bus.IsActive }, JsonOptions);
 

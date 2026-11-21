@@ -87,7 +87,7 @@ public static class UserExcelImport
         }
         if (values.All(string.IsNullOrWhiteSpace) && rowErrors.Count == 0) continue;
         if (++dataRows > MaximumRows) return Invalid("Upload at most 500 users at a time.");
-        var roles = PartnerMemberRoles.Allowed(category).Where(role => role is "booking.read" or "bus.read" or "terminal.read").ToArray();
+        var roles = PartnerMemberRoles.Allowed(category).Where(role => role is "booking.read" or "bus.read" or "terminal.read" or "hotel.read" or "room.read").ToArray();
         var request = new EByahe.Application.Controllers.AddPartnerMemberRequest { FirstName = values[0] ?? "", LastName = values[1] ?? "",
           Email = (values[2] ?? "").ToLowerInvariant(), Roles = roles };
         var validation = new List<ValidationResult>(); Validator.TryValidateObject(request, new ValidationContext(request), validation, true);

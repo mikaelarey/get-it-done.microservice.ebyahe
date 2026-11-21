@@ -15,6 +15,24 @@ public sealed partial class SqlServerDatabaseTests {
     body.Add(new ByteArrayContent(UserExcelImportTests.Workbook(rows)), "file", "users.xlsx"); return body;
   }
   [SqlServerFact]
+  public async Task HotelUserExcelUploadQueuesOnlyBookingHotelAndRoomViewPermissions() {
+    var partner = await SeedMemberPartner("hotel"); using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: MemberRoles()));
+    var uploadId = Guid.NewGuid();
+    using var file = UserUpload(partner.Id, uploadId, ["Hotel", "Viewer", "hotel.viewer@example.com"]);
+    using var response = await client.PostAsync("/api/partner/users/import", file);
+    Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+    Assert.Equal(1, (await response.Content.ReadFromJsonAsync<PartnerUserImportResult>())!.QueuedCount);
+    await using var db = CreateDatabase();
+    var request = await db.PartnerMemberRequests.SingleAsync();
+    string[] expected = ["booking.read", "hotel.read", "room.read"];
+    Assert.Equal(expected, JsonSerializer.Deserialize<string[]>(request.RequestedRolesJson!));
+    using var payload = JsonDocument.Parse((await db.OutboxMessages.SingleAsync(message => message.EventType == "partner.member.requested")).Payload);
+    Assert.Equal("hotel", payload.RootElement.GetProperty("businessCategory").GetString());
+    Assert.Equal(expected, payload.RootElement.GetProperty("roles").EnumerateArray().Select(role => role.GetString()));
+    Assert.Equal(1, await db.UploadMemberRequests.CountAsync());
+  }
+  [SqlServerFact]
   public async Task UserExcelUploadQueuesOnceLinksCompletedRecordsAndSendsOneUploadNotificationAfterAllReplies() {
     var partner = await SeedMemberPartner(); using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: MemberRoles()));

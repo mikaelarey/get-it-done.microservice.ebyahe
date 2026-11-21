@@ -23,7 +23,7 @@ builder.Services.Configure<IISServerOptions>(options =>
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
 {
   var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-  if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyHeader().WithMethods("GET", "POST", "PUT").AllowCredentials();
+  if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyHeader().WithMethods("GET", "POST", "PUT", "DELETE").AllowCredentials();
 }));
 
 var app = builder.Build();

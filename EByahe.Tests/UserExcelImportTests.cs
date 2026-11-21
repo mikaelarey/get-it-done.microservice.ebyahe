@@ -42,7 +42,7 @@ public sealed class UserExcelImportTests {
     Assert.Contains(parsed.Errors, x => x.Row == 4 && x.Field == "First name"); Assert.Contains(parsed.Errors, x => x.Row == 4 && x.Field == "Email address");
     Assert.Contains(parsed.Errors, x => x.Row == 5 && x.Field == "First name");
     var hotel = await Parse(Workbook(["Hotel", "User", "hotel@example.com"]), "hotel");
-    Assert.Empty(hotel.Errors); Assert.Equal(new[] { "booking.read" }, Assert.Single(hotel.Rows).Roles);
+    Assert.Empty(hotel.Errors); Assert.Equal(new[] { "booking.read", "hotel.read", "room.read" }, Assert.Single(hotel.Rows).Roles);
   }
   [Fact]
   public async Task UserImportRejectsMalformedWrongHeadersFormulasEmptyAndOversizedFiles() {

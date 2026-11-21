@@ -2318,6 +2318,230 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.Hotel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("CodeDecodeBarangay")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeMunicipality")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeProvince")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodeRegion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("PartnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeDecodeRegion");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("CodeDecodeBarangay", "CodeDecodeMunicipality");
+
+                    b.HasIndex("CodeDecodeMunicipality", "CodeDecodeProvince");
+
+                    b.HasIndex("CodeDecodeProvince", "CodeDecodeRegion");
+
+                    b.HasIndex("PartnerId", "Name", "CodeDecodeBarangay")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("Hotels", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Hotels_Deletion", "([IsDeleted] = 0 AND [DeletedBy] IS NULL AND [DeletedAtUtc] IS NULL) OR ([IsDeleted] = 1 AND [DeletedBy] IS NOT NULL AND [DeletedAtUtc] IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.HotelBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("CheckIn")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("CheckOut")
+                        .HasColumnType("date");
+
+                    b.Property<int>("CodeDecodeBookingStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CodeDecodePaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<int>("GuestCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GuestEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("GuestName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("GuestPhone")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("RoomCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoomName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeDecodeBookingStatus");
+
+                    b.HasIndex("CodeDecodePaymentStatus");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Reference")
+                        .IsUnique();
+
+                    b.HasIndex("HotelId", "CreatedAtUtc");
+
+                    b.ToTable("HotelBookings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_HotelBookings_Counts", "[RoomCount] BETWEEN 1 AND 100 AND [GuestCount] BETWEEN 1 AND 1000");
+
+                            t.HasCheckConstraint("CK_HotelBookings_Stay", "[CheckOut] > [CheckIn]");
+
+                            t.HasCheckConstraint("CK_HotelBookings_Total", "[Total] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.HotelLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("CurrentValue")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PreviousValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("HotelId", "DateTimeCreated");
+
+                    b.ToTable("HotelLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_HotelLogs_Values", "[Action] IN ('Created','Updated','Deleted','Baseline') AND ISJSON([CurrentValue]) = 1 AND ([PreviousValue] IS NULL OR ISJSON([PreviousValue]) = 1)");
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.Incoming", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3989,6 +4213,118 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedBy")
                         .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Hotel", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeRegion", "Region")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeRegion")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeBarangay", "Barangay")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBarangay", "CodeDecodeMunicipality")
+                        .HasPrincipalKey("Code", "CodeDecodeMunicipality")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeMunicipality", "Municipality")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeMunicipality", "CodeDecodeProvince")
+                        .HasPrincipalKey("Code", "CodeDecodeProvince")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeProvince", "Province")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeProvince", "CodeDecodeRegion")
+                        .HasPrincipalKey("Code", "CodeDecodeRegion")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Barangay");
+
+                    b.Navigation("Municipality");
+
+                    b.Navigation("Partner");
+
+                    b.Navigation("Province");
+
+                    b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.HotelBooking", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.BookingStatus", "BookingStatus")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeBookingStatus")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.PaymentStatus", "PaymentStatus")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodePaymentStatus")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BookingStatus");
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("PaymentStatus");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.HotelLog", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Hotel", null)
+                        .WithMany()
+                        .HasForeignKey("HotelId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

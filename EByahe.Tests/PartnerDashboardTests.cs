@@ -33,13 +33,15 @@ public sealed partial class SqlServerDatabaseTests
       DetailsJson = JsonSerializer.Serialize(new { trip = new { origin = "Origin city", destination = "Destination city", departureDate = "2026-11-19", departureTime = "14:00" },
         booking = new { passengers = new[] { new { fullName = "Actual Passenger" }, new { fullName = "Second Passenger" } }, contact = new { email = "private-contact@example.com" } } }) };
     var paid = Booking("BK-PAID", next, first, 1000, "Confirmed", "Payment Success", 2);
+    paid.PaymentType = "GCash";
     var submitted = Booking("BK-SUBMITTED", next, now.AddHours(-1), 1500);
     var failed = Booking("BK-FAILED", next, now.AddMinutes(-1), 500, payment: "Payment Failed");
     var cancelled = Booking("BK-CANCELLED", next, now.AddDays(-2), 2000, "Cancelled", "Cancelled");
     db.BusBookings.AddRange(paid, submitted, failed, cancelled,
       Booking("BK-PREVIOUS", previous, first.AddDays(-2), 800, "Confirmed", "Payment Success", 4),
       Booking("BK-BOUNDARY", previous, first.AddTicks(-1), 200),
-      Booking("PRIVATE-BOOKING", hidden, now.AddSeconds(-1), 99999), Booking("BK-FUTURE", next, now.AddDays(1), 55555));
+      Booking("PRIVATE-BOOKING", hidden, now.AddSeconds(-1), 99999, payment: "Payment Success"),
+      Booking("BK-FUTURE", next, now.AddDays(1), 55555, payment: "Payment Success"));
     db.BusBookingStatusLogs.Add(new BusBookingStatusLog { BookingId = failed.Id, Status = "Submitted", PaymentStatus = "Payment Failed", ChangedAtUtc = now.AddMinutes(-1), Remarks = "Private remarks" });
     db.ScheduledTripLogs.Add(new ScheduledTripLog { ScheduledTripId = next.Id, CreatedBy = PartnerApiFactory.Subject, DateTimeCreated = now.AddMinutes(-2), Action = "Updated", CurrentValue = "{}" });
     db.BusLogs.Add(new BusLog { BusId = bus.Id, CreatedBy = PartnerApiFactory.Subject, DateTimeCreated = now.AddMinutes(-3), Action = "Created", CurrentValue = "{}" });
@@ -48,8 +50,8 @@ public sealed partial class SqlServerDatabaseTests
     var repository = new PartnerPortalRepository(db); var access = new PartnerDashboardAccess(true, true, true, true, true);
     var data = await repository.DashboardOverviewAsync(PartnerApiFactory.Subject, "week", now, access, default);
     Assert.Equal(new DateOnly(2026, 11, 13), data.StartDate); Assert.Equal(new DateOnly(2026, 11, 19), data.EndDate);
-    Assert.Equal(new PartnerDashboardMetrics(4, 3000, 2, 2.5m, 1, 2, 1), data.Current);
-    Assert.Equal(new PartnerDashboardMetrics(2, 1000, 1, 10, 1, 1, 0), data.Previous);
+    Assert.Equal(new PartnerDashboardMetrics(4, 1000, 2, 2.5m, 1, 2, 1), data.Current);
+    Assert.Equal(new PartnerDashboardMetrics(2, 800, 1, 10, 1, 1, 0), data.Previous);
     Assert.Equal(7, data.Chart.Count); Assert.Equal(4, data.Chart.Sum(row => row.Bookings)); Assert.Equal(1, data.Chart[0].Bookings);
     Assert.Equal(2, data.TerminalCount); Assert.Equal(1, data.ActiveUserCount);
     Assert.Equal(new[] { next.Id, unknown.Id }, data.Departures.Select(row => row.Id)); Assert.Equal(2, data.Departures[0].ReservedSeats); Assert.Equal(38, data.Departures[0].AvailableSeats); Assert.Null(data.Departures[1].AvailableSeats);
@@ -60,6 +62,21 @@ public sealed partial class SqlServerDatabaseTests
     foreach (var text in new[] { "PRIVATE", "private-contact", "Private remarks", "DetailsJson", "BK-FUTURE" }) Assert.DoesNotContain(text, serialized);
     var month = await repository.DashboardOverviewAsync(PartnerApiFactory.Subject, "month", now, access, default);
     Assert.Equal(30, month.Chart.Count); Assert.Equal(6, month.Current.Bookings);
+    Assert.Equal(1800, month.Current.BookingValue);
+    // Accepted cash payments count alongside online payments; pending and failed payments do not.
+    submitted.PaymentType = "Cash"; submitted.PaymentStatus = "Payment Success";
+    submitted.Status = "Confirmed"; submitted.ReservedSeats = 2;
+    await db.SaveChangesAsync();
+    var afterCashAcceptance = await repository.DashboardOverviewAsync(PartnerApiFactory.Subject, "week", now, access, default);
+    Assert.Equal(2500, afterCashAcceptance.Current.BookingValue);
+    Assert.Equal(4, afterCashAcceptance.Current.Bookings);
+    Assert.Equal(800, afterCashAcceptance.Previous.BookingValue);
+    paid.Status = "Submitted"; paid.ReservedSeats = 0; paid.PaymentStatus = "Payment Failed";
+    submitted.Status = "Submitted"; submitted.ReservedSeats = 0; submitted.PaymentStatus = "Pending Payment";
+    await db.SaveChangesAsync();
+    var noSuccessfulPayments = await repository.DashboardOverviewAsync(PartnerApiFactory.Subject, "week", now, access, default);
+    Assert.Equal(0, noSuccessfulPayments.Current.BookingValue);
+    Assert.Equal(4, noSuccessfulPayments.Current.Bookings);
     var restricted = await repository.DashboardOverviewAsync(PartnerApiFactory.Subject, "week", now, new(false, false, false, true, false), default);
     Assert.Equal(new PartnerDashboardMetrics(0, 0, 0, 0, 0, 0, 0), restricted.Current); Assert.Empty(restricted.Departures); Assert.Empty(restricted.RecentBookings);
     Assert.All(restricted.Activity, row => Assert.Equal("users", row.Resource)); Assert.Equal(0, restricted.TerminalCount);

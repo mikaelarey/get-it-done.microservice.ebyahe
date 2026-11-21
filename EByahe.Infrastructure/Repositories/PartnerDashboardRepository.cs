@@ -29,7 +29,7 @@ public sealed partial class PartnerPortalRepository
     {
       var totals = access.Bookings ? await bookings.Where(row => row.CreatedAtUtc >= from && row.CreatedAtUtc < to)
         .GroupBy(_ => 1).Select(group => new {
-          Count = group.Count(), Value = group.Sum(row => row.CodeDecodeBookingStatus != cancelled ? row.Total : 0),
+          Count = group.Count(), Value = group.Sum(row => row.CodeDecodeBookingStatus != cancelled && row.CodeDecodePaymentStatus == paid ? row.Total : 0),
           Confirmed = group.Count(row => row.CodeDecodeBookingStatus == confirmed),
           Submitted = group.Count(row => row.CodeDecodeBookingStatus == submitted),
           Cancelled = group.Count(row => row.CodeDecodeBookingStatus == cancelled)

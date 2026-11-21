@@ -8,7 +8,7 @@ All queries use the signed-in subject's active memberships in approved partners.
 
 - Reporting periods cover the last 7 or 30 calendar dates including today, using Manila time (UTC+8). The previous period is the immediately preceding 7 or 30 dates. Today's figures are partial. `CreatedAtUtc` is stored in UTC; future-created bookings are excluded.
 - **Total bookings:** bookings created in the selected period, including cancelled bookings.
-- **Booking value:** totals of non-cancelled bookings created in the selected period. This includes unpaid submissions and is not collected revenue.
+- **Booking value:** totals of non-cancelled bookings created in the selected period with payment status `Payment Success`, including accepted cash payments. Pending and failed payments are excluded. The comparison uses the same rule for the previous period. The period is based on booking creation, rather than the payment date.
 - **Scheduled trips:** non-cancelled departures in the selected period, based on departure time.
 - **Seat occupancy:** reserved seats on Confirmed / Payment Success bookings for those trips, divided by the trips' total bus capacity. Trips with unconfigured inventory or zero capacity are excluded from this ratio. Empty capacity produces 0%. Unpaid submissions and failed payments do not reserve seats.
 - **Booking statuses:** actual Submitted, Confirmed and Cancelled statuses of bookings created in the selected period.

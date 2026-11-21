@@ -6,12 +6,12 @@ public static class PartnerMemberRoles
   {
     "bus-operator" => ["booking.read", "booking.confirm", "bus.read", "bus.write", "terminal.read", "terminal.write",
       "scheduled-trip.read", "scheduled-trip.write", "travel-time.read", "travel-time.write", "member.create", "member.manage"],
-    "hotel" => ["booking.read", "booking.confirm", "hotel.read", "hotel.write", "member.create", "member.manage"],
+    "hotel" => ["booking.read", "booking.confirm", "hotel.read", "hotel.write", "room.read", "room.write", "member.create", "member.manage"],
     _ => []
   };
 
   // Events queued before role selection was introduced retain their previous access.
-  public static string[] Legacy(string category) => Allowed(category).Where(role => role is not ("member.create" or "member.manage")).ToArray();
+  public static string[] Legacy(string category) => Allowed(category).Where(role => role is not ("member.create" or "member.manage" or "room.read" or "room.write")).ToArray();
 
   public static string? RequiredRead(string role) => role == "booking.confirm" ? "booking.read"
     : role.EndsWith(".write", StringComparison.Ordinal) ? role[..^6] + ".read" : null;

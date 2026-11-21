@@ -109,6 +109,8 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Empty(b.RootElement.GetProperty("audiences").EnumerateArray());
     Assert.Equal(0,b.RootElement.GetProperty("details").GetProperty("reservedSeats").GetInt32());
     using var p=JsonDocument.Parse(partner.Payload); Assert.Equal("/partner-application-details/"+application.Id,p.RootElement.GetProperty("link").GetString());
+    Assert.Equal(PartnerApiFactory.Subject,p.RootElement.GetProperty("details").GetProperty("applicationCreatorUserId").GetString());
+    Assert.Equal((await db.PartnerApplications.SingleAsync(item=>item.Id==application.Id)).BusinessName,p.RootElement.GetProperty("details").GetProperty("businessName").GetString());
     Assert.Equal(2,await db.Outgoing.CountAsync());
   }
 

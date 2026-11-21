@@ -10,7 +10,7 @@ public sealed partial class EByaheDbContext
     foreach(var application in ChangeTracker.Entries<PartnerApplication>().Where(x=>x.State==EntityState.Added).Select(x=>x.Entity).ToArray())
       activities.Add(new ActivityEvent(application.Id,"partner-application.submitted",1,application.SubmittedAtUtc,"ebyahe",application.CreatedBy!,
         "Submitted a partner application.","/partner-application-details/"+application.Id.ToString("D"),
-        new {application.Id,application.TrackingId,application.BusinessName,application.BusinessCategory,application.Status}));
+        new {application.Id,application.TrackingId,application.BusinessName,ApplicationCreatorUserId=application.CreatedBy,application.BusinessCategory,application.Status}));
     foreach (var entry in ChangeTracker.Entries<Partner>().ToArray())
     {
       if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted)) continue;

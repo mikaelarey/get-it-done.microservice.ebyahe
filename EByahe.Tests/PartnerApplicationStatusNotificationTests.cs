@@ -61,6 +61,9 @@ public sealed partial class SqlServerDatabaseTests
         Assert.Equal("User", audience.GetProperty("kind").GetString());
         Assert.Equal(PartnerApiFactory.Subject, audience.GetProperty("externalUserId").GetString());
         Assert.Equal(receipt.Id, root.GetProperty("details").GetProperty("id").GetGuid());
+        Assert.Equal(PartnerApiFactory.Subject, root.GetProperty("details").GetProperty("applicationCreatorUserId").GetString());
+        Assert.Equal((await db.PartnerApplications.SingleAsync(application => application.Id == receipt.Id)).BusinessName,
+          root.GetProperty("details").GetProperty("businessName").GetString());
         Assert.Equal(decision.Status, root.GetProperty("details").GetProperty("status").GetString());
         Assert.True(Encoding.UTF8.GetByteCount(message.Payload) < 2048);
         foreach (var excluded in new[] { "Private decision remarks", "accountNumber", "storageKey", "representativeEmail" })

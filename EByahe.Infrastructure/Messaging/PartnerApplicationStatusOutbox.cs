@@ -17,7 +17,8 @@ internal static class PartnerApplicationStatusOutbox
     // the original applicant is the explicit recipient, even when they differ.
     return ActivityOutbox.Create(new ActivityEvent(decision.Id, eventType, 1, decision.DateTimeCreated,
       "ebyahe", decision.ChangedBy, message, "/partner-application-details/" + application.Id.ToString("D"),
-      Details: new { application.Id, application.TrackingId, decision.PreviousStatus, decision.Status },
+      Details: new { application.Id, application.TrackingId, application.BusinessName,
+        ApplicationCreatorUserId = application.CreatedBy, decision.PreviousStatus, decision.Status },
       Audiences: new[] { new { kind = "User", externalUserId = application.CreatedBy } }), topic);
   }
 }

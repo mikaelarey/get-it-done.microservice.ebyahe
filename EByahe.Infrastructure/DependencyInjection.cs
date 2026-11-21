@@ -38,6 +38,7 @@ public static class DependencyInjection
     services.AddScoped<IPartnerPortalRepository, PartnerPortalRepository>();
     services.AddScoped<IPartnerBusRepository, PartnerBusRepository>();
     services.AddScoped<IPartnerHotelRepository, PartnerHotelRepository>();
+    services.AddScoped<IPartnerRoomRepository, PartnerRoomRepository>();
     services.AddScoped<IPartnerBookingRepository, PartnerBookingRepository>();
     services.AddScoped<IUploadRepository, UploadRepository>();
     services.AddScoped<IPartnerTerminalRepository, PartnerTerminalRepository>();

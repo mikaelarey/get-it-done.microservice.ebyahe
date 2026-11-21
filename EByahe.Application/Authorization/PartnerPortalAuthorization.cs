@@ -12,6 +12,12 @@ public static class PartnerPortalAuthorization
     && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "member.manage");
   public const string ReadBusesPolicy = "ReadPartnerBuses";
   public const string ReadHotelsPolicy = "ReadPartnerHotels";
+  public const string ReadRoomsPolicy = "ReadPartnerRooms";
+  public const string WriteRoomsPolicy = "WritePartnerRooms";
+  public static bool CanReadRooms(ClaimsPrincipal user) => HasAccess(user)
+    && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "room.read");
+  public static bool CanWriteRooms(ClaimsPrincipal user) => CanReadRooms(user)
+    && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "room.write");
   public const string WriteHotelsPolicy = "WritePartnerHotels";
   public static bool CanReadHotels(ClaimsPrincipal user) => HasAccess(user)
     && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "hotel.read");

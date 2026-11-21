@@ -65,7 +65,8 @@ public sealed class S3DocumentStorage(IAmazonS3 client, IOptions<DocumentStorage
 
   private void Validate(StoredDocument document)
   {
-    if (document.Bucket != Bucket || !document.Key.StartsWith("ebyahe/partner-applications/", StringComparison.Ordinal)
+    if (document.Bucket != Bucket || !(document.Key.StartsWith("ebyahe/partner-applications/", StringComparison.Ordinal)
+        || document.Key.StartsWith("ebyahe/room-images/", StringComparison.Ordinal))
       || document.Key.Length > 512 || document.Key.Contains("..", StringComparison.Ordinal)
       || document.Key.Contains('\\') || document.Key.Any(char.IsControl))
       throw new DocumentStorageException("The document storage reference is invalid for this environment.");

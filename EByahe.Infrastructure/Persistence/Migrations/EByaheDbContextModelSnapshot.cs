@@ -2046,6 +2046,127 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeRoomType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasDefaultValue("System")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Decode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Decode")
+                        .IsUnique();
+
+                    b.ToTable("CodeDecodeRoomTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000001"),
+                            Code = 1,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Standard"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000002"),
+                            Code = 2,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Superior"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000003"),
+                            Code = 3,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Deluxe"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000004"),
+                            Code = 4,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Suite"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000005"),
+                            Code = 5,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Family"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000006"),
+                            Code = 6,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Studio"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000007"),
+                            Code = 7,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Single"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000008"),
+                            Code = 8,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Double"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000009"),
+                            Code = 9,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Twin"
+                        },
+                        new
+                        {
+                            Id = new Guid("c0de7001-0000-4000-8000-000000000010"),
+                            Code = 10,
+                            CreatedBy = "System",
+                            DateTimeCreated = new DateTimeOffset(new DateTime(2026, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Decode = "Executive"
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3475,6 +3596,203 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.Room", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CodeDecodeRoomType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("GuestCapacity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("NightlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeDecodeRoomType");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("HotelId", "Name")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("Rooms", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Rooms_Capacity", "[GuestCapacity] BETWEEN 1 AND 100");
+
+                            t.HasCheckConstraint("CK_Rooms_Deletion", "([IsDeleted] = 0 AND [DeletedBy] IS NULL AND [DeletedAtUtc] IS NULL) OR ([IsDeleted] = 1 AND [DeletedBy] IS NOT NULL AND [DeletedAtUtc] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Rooms_Rate", "[NightlyRate] BETWEEN 0 AND 99999999.99");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.RoomImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StorageBucket")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeletedBy");
+
+                    b.HasIndex("RoomId", "SortOrder");
+
+                    b.ToTable("RoomImages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RoomImages_Deletion", "([IsDeleted] = 0 AND [DeletedBy] IS NULL AND [DeletedAtUtc] IS NULL) OR ([IsDeleted] = 1 AND [DeletedBy] IS NOT NULL AND [DeletedAtUtc] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_RoomImages_Size", "[SizeBytes] > 0 AND [SizeBytes] <= 5242880");
+
+                            t.HasCheckConstraint("CK_RoomImages_Type", "[ContentType] IN ('image/jpeg','image/png','image/webp')");
+                        });
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.RoomLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
+                    b.Property<string>("CurrentValue")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DateTimeCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("PreviousValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("RoomId", "DateTimeCreated");
+
+                    b.ToTable("RoomLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RoomLogs_Values", "[Action] IN ('Created','Updated','Deleted') AND ISJSON([CurrentValue]) = 1 AND ([PreviousValue] IS NULL OR ISJSON([PreviousValue]) = 1)");
+                        });
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.ScheduledTrip", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4177,6 +4495,16 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeRoomType", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.RefUser", null)
@@ -4683,6 +5011,79 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EByahe.Domain.Models.Room", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.CodeDecodeRoomType", "RoomType")
+                        .WithMany()
+                        .HasForeignKey("CodeDecodeRoomType")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("RoomType");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.RoomImage", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EByahe.Domain.Models.Room", "Room")
+                        .WithMany("Images")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.RoomLog", b =>
+                {
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.Room", null)
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EByahe.Domain.Models.ScheduledTrip", b =>
                 {
                     b.HasOne("EByahe.Domain.Models.CodeDecodeScheduledTripStatus", null)
@@ -4873,6 +5274,11 @@ namespace EByahe.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EByahe.Domain.Models.RefUser", b =>
                 {
                     b.Navigation("PartnerMemberships");
+                });
+
+            modelBuilder.Entity("EByahe.Domain.Models.Room", b =>
+                {
+                    b.Navigation("Images");
                 });
 #pragma warning restore 612, 618
         }

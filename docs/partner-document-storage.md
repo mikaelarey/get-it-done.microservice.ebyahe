@@ -6,6 +6,27 @@ History snapshots retain those references instead of Base64 file contents. An
 immutable key includes application ID, document ID, and the file's SHA-256, so a
 later version cannot overwrite a historical version.
 
+## Room photos
+
+Room photos use the same `IDocumentStorage` service and environment bucket, with
+immutable keys under `ebyahe/room-images/{imageId}/{sha256}`. `RoomImages` stores
+only metadata and storage references; room history records the photo IDs and
+checksums. Removing a photo soft-deletes its reference and preserves its stored
+version for history.
+
+`POST /api/partner/rooms` and `PUT /api/partner/rooms/{id}` accept either the
+existing JSON request or multipart form data. Multipart requests repeat `images`
+for new files and, when editing, `retainedImageIds` for photos to keep. Omitted
+photos in a multipart update are removed; JSON updates preserve existing photos.
+Photos are optional, with up to 8 per room, 5 MB each, in JPEG, PNG or WebP format.
+The full selection is validated before upload. Failed saves clean up new objects
+only after confirming they were not committed to the database.
+
+`GET /api/partner/rooms/{id}/images/{imageId}` requires `room.read` and an active
+membership in the room's hotel company. Reads verify size and SHA-256 and disable
+browser caching. Deleted rooms, deleted hotels and removed photos return 404.
+Room writes continue to require both `room.read` and `room.write`.
+
 ## Environment settings
 
 | Environment | Endpoint | Bucket |

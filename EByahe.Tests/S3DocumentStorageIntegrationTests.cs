@@ -54,5 +54,17 @@ public sealed class S3DocumentStorageIntegrationTests
       await Assert.ThrowsAsync<DocumentStorageException>(() => storage.ReadAsync(reference));
     }
     finally { await storage.DeleteAsync(reference); }
+
+    var image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=");
+    var imageSha = Convert.ToHexString(SHA256.HashData(image));
+    var imageReference = new StoredDocument(storage.Bucket, $"ebyahe/room-images/{Guid.NewGuid():N}/{imageSha.ToLowerInvariant()}");
+    try {
+      await storage.PutAsync(imageReference.Key, image, "image/png", imageSha);
+      Assert.Equal(image, await storage.ReadAsync(imageReference));
+      using var client = new HttpClient();
+      using var unsigned = await client.GetAsync(endpoint.TrimEnd('/') + "/" + storage.Bucket + "/" + imageReference.Key);
+      Assert.Equal(HttpStatusCode.Forbidden, unsigned.StatusCode);
+    }
+    finally { await storage.DeleteAsync(imageReference); }
   }
 }

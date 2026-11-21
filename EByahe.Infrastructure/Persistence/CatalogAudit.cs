@@ -6,6 +6,12 @@ namespace EByahe.Infrastructure.Persistence;
 internal static class CatalogAudit
 {
   private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+  public static string Snapshot(Room room) => JsonSerializer.Serialize(new { room.Id, room.HotelId, room.Name, room.CodeDecodeRoomType, RoomType = room.RoomType.Decode,
+    room.GuestCapacity, room.NightlyRate, room.Description, room.IsActive, room.IsDeleted, room.DeletedBy, room.DeletedAtUtc,
+    room.CreatedBy, room.CreatedAtUtc, Images = room.Images.Where(image => !image.IsDeleted).OrderBy(image => image.SortOrder)
+      .Select(image => new { image.Id, image.FileName, image.ContentType, image.SizeBytes, image.Sha256 }) }, JsonOptions);
+  public static void Record(EByaheDbContext db, Room room, string actor, string action, string? previous = null) =>
+    db.RoomLogs.Add(new RoomLog { RoomId = room.Id, CreatedBy = actor, Action = action, PreviousValue = previous, CurrentValue = Snapshot(room) });
 
   public static string Snapshot(Hotel hotel) => JsonSerializer.Serialize(new { hotel.Id, hotel.PartnerId, hotel.Name,
     hotel.Address, hotel.CodeDecodeRegion, hotel.CodeDecodeProvince, hotel.CodeDecodeMunicipality, hotel.CodeDecodeBarangay,

@@ -30,6 +30,10 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   public DbSet<BusTerminal> BusTerminals => Set<BusTerminal>();
   public DbSet<Bus> Buses => Set<Bus>();
   public DbSet<Hotel> Hotels => Set<Hotel>();
+  public DbSet<Room> Rooms => Set<Room>();
+  public DbSet<CodeDecodeRoomType> CodeDecodeRoomTypes => Set<CodeDecodeRoomType>();
+  public DbSet<RoomImage> RoomImages => Set<RoomImage>();
+  public DbSet<RoomLog> RoomLogs => Set<RoomLog>();
   public DbSet<HotelLog> HotelLogs => Set<HotelLog>();
   public DbSet<HotelBooking> HotelBookings => Set<HotelBooking>();
   public DbSet<CodeDecodeBusClass> CodeDecodeBusClasses => Set<CodeDecodeBusClass>();
@@ -122,8 +126,12 @@ public sealed partial class EByaheDbContext(DbContextOptions<EByaheDbContext> op
   {
     if (ChangeTracker.Entries<Hotel>().Any(entry => entry.State == EntityState.Deleted))
       throw new InvalidOperationException("Hotels cannot be physically deleted. Set the deletion flag instead.");
+    if (ChangeTracker.Entries<Room>().Any(entry => entry.State == EntityState.Deleted))
+      throw new InvalidOperationException("Rooms cannot be physically deleted. Set the deletion flag instead.");
+    if (ChangeTracker.Entries<RoomImage>().Any(entry => entry.State == EntityState.Deleted))
+      throw new InvalidOperationException("Room images cannot be physically deleted. Set the deletion flag instead.");
     if (ChangeTracker.Entries().Any(entry => entry.Entity is EByahe.Domain.Models.Outgoing or IncomingLog
-        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog or BusLog or TerminalLog or ScheduledTripLog or HotelLog or Upload or UploadRecord or UploadMemberRequest
+        or PartnerApplicationHistory or PartnerApplicationApproval or BusBookingStatusLog or BusLog or TerminalLog or ScheduledTripLog or HotelLog or RoomLog or Upload or UploadRecord or UploadMemberRequest
       && entry.State is EntityState.Modified or EntityState.Deleted))
       throw new InvalidOperationException("Log and approval entries are append-only; add a new status entry instead.");
   }

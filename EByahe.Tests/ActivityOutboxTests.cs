@@ -8,6 +8,55 @@ namespace EByahe.Tests;
 public sealed partial class SqlServerDatabaseTests
 {
   [SqlServerFact]
+  public async Task BookingNotificationsSnapshotOnlyTheSelectedPartnerTeamExcludeTheCreatorAndBatchWithoutReplayDuplicates()
+  {
+    await SeedBookingTripAsync(); await using var db = CreateDatabase();
+    var trip = await db.ScheduledTrips.SingleAsync();
+    var actor = await db.RefUsers.SingleAsync(user => user.ExternalUserId == PartnerApiFactory.Subject);
+    db.PartnerUsers.Add(new() { PartnerId = trip.PartnerId, RefUserId = actor.Id });
+    var expected = new List<string>();
+    for (var index = 0; index < 26; index++)
+    {
+      var user = MembershipUser("booking-team-" + index); expected.Add(user.ExternalUserId);
+      db.PartnerUsers.Add(new() { PartnerId = trip.PartnerId, RefUser = user });
+    }
+    var partnerAdmin = MembershipUser("booking-partner-admin"); partnerAdmin.Role = "Administrator";
+    expected.Add(partnerAdmin.ExternalUserId);
+    db.PartnerUsers.Add(new() { PartnerId = trip.PartnerId, RefUser = partnerAdmin });
+    db.PartnerUsers.Add(new() { PartnerId = trip.PartnerId, RefUser = MembershipUser("inactive-booking-member"), IsActive = false });
+    var foreign = new EByahe.Domain.Models.Partner { Code = "BOOKING-FOREIGN", DisplayName = "Other partner" };
+    db.PartnerUsers.Add(new() { Partner = foreign, RefUser = MembershipUser("foreign-booking-member") });
+    db.PartnerUsers.Add(new() { Partner = foreign, RefUserId = actor.Id });
+    var platformAdmin = MembershipUser("booking-platform-admin"); platformAdmin.Role = "Administrator";
+    db.RefUsers.Add(platformAdmin); await db.SaveChangesAsync();
+    using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
+    var request = BookingRequest();
+    using var response = await client.PostAsJsonAsync("/api/bus-bookings", request);
+    Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    var receipt = (await response.Content.ReadFromJsonAsync<BusBookingResponse>())!;
+    using var replay = await client.PostAsJsonAsync("/api/bus-bookings", request); Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+    var events = await db.OutboxMessages.Where(message => message.EventType == "booking.created").ToArrayAsync();
+    Assert.Equal(2, events.Length); Assert.Contains(events, message => message.Id == receipt.Id);
+    var targets = new List<string>();
+    foreach (var message in events)
+    {
+      using var payload = JsonDocument.Parse(message.Payload); var root = payload.RootElement;
+      Assert.Equal("/bookings/" + receipt.Id.ToString("D"), root.GetProperty("link").GetString());
+      Assert.Equal(receipt.Id, root.GetProperty("details").GetProperty("id").GetGuid());
+      Assert.Equal(trip.PartnerId, root.GetProperty("details").GetProperty("partnerId").GetGuid());
+      Assert.True(System.Text.Encoding.UTF8.GetByteCount(message.Payload) <= 65536);
+      foreach (var target in root.GetProperty("audiences").EnumerateArray())
+      {
+        Assert.Equal("User", target.GetProperty("kind").GetString());
+        targets.Add(target.GetProperty("externalUserId").GetString()!);
+      }
+    }
+    Assert.Equal(expected.OrderBy(subject => subject), targets.OrderBy(subject => subject));
+    Assert.Equal(targets.Count, targets.Distinct(StringComparer.Ordinal).Count());
+    Assert.Equal(40, (await db.ScheduledTrips.AsNoTracking().SingleAsync()).AvailableSeats);
+  }
+
+  [SqlServerFact]
   public async Task ApprovedPartnerOwnershipChangesPublishDirectorySnapshotsInTheSameTransaction()
   {
     await using var db = CreateDatabase();
@@ -56,7 +105,8 @@ public sealed partial class SqlServerDatabaseTests
       Assert.True(System.Text.Encoding.UTF8.GetByteCount(message.Payload)<2048);
       foreach(var forbidden in new[]{"accountNumber","storageKey","payment","contact","passengers","Test Traveler"}) Assert.DoesNotContain(forbidden,message.Payload);
     });
-    using var b=JsonDocument.Parse(booking.Payload); Assert.Equal("/booking-details?reference="+receipt.Reference,b.RootElement.GetProperty("link").GetString());
+    using var b=JsonDocument.Parse(booking.Payload); Assert.Equal("/bookings/"+receipt.Id.ToString("D"),b.RootElement.GetProperty("link").GetString());
+    Assert.Empty(b.RootElement.GetProperty("audiences").EnumerateArray());
     Assert.Equal(0,b.RootElement.GetProperty("details").GetProperty("reservedSeats").GetInt32());
     using var p=JsonDocument.Parse(partner.Payload); Assert.Equal("/partner-application-details/"+application.Id,p.RootElement.GetProperty("link").GetString());
     Assert.Equal(2,await db.Outgoing.CountAsync());

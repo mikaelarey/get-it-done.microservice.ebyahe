@@ -2,12 +2,15 @@ using EByahe.Domain.Models;
 using EByahe.Domain.Exceptions;
 using EByahe.Domain.Repositories;
 using EByahe.Infrastructure.Persistence;
+using EByahe.Infrastructure.Messaging;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider clock, IRecordChangePublisher? changes = null) : IBusBookingRepository
+public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider clock, IRecordChangePublisher? changes = null,
+  IOptions<KafkaOptions>? kafka = null) : IBusBookingRepository
 {
   public async Task<IReadOnlyList<BusBookingStatusLog>> HistoryAsync(Guid id, string userId, CancellationToken cancellationToken) =>
     await database.BusBookingStatusLogs.AsNoTracking()
@@ -63,8 +66,11 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
       PaymentType = booking.PaymentType, ChangedAtUtc = booking.CreatedAtUtc,
       Remarks = "Booking submitted without reserving seats."
     });
+    IReadOnlyList<OutboxMessage> events = [];
     try
     {
+      events = await PartnerBookingActivityOutbox.QueueAsync(database, booking, trip.PartnerId,
+        kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
       await database.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
       if (changes is not null) await changes.PublishAsync(["bookings"], booking.CreatedBy, trip.PartnerId, cancellationToken);
@@ -72,6 +78,7 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
     }
     catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
     {
+      PartnerBookingActivityOutbox.Detach(database, events);
       await transaction.RollbackAsync(cancellationToken);
       await transaction.DisposeAsync();
       database.Entry(booking).State = EntityState.Detached;
@@ -80,6 +87,11 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
       existing = await GetForRequestAsync(booking.RequestId, booking.CreatedBy, cancellationToken);
       if (existing is null) throw;
       return existing;
+    }
+    catch
+    {
+      PartnerBookingActivityOutbox.Detach(database, events);
+      throw;
     }
   }
 

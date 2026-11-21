@@ -7,10 +7,6 @@ public sealed partial class EByaheDbContext
   private List<OutboxMessage> PrepareActivityEvents()
   {
     var activities = new List<ActivityEvent>();
-    foreach(var booking in ChangeTracker.Entries<BusBooking>().Where(x=>x.State==EntityState.Added).Select(x=>x.Entity).ToArray())
-      activities.Add(new ActivityEvent(booking.Id,"booking.created",1,booking.CreatedAtUtc,"ebyahe",booking.CreatedBy,
-        "Created a bus booking.","/booking-details?reference="+Uri.EscapeDataString(booking.Reference),
-        new {booking.Id,booking.Reference,booking.ScheduledTripId,booking.Total,booking.ReservedSeats,booking.Status}));
     foreach(var application in ChangeTracker.Entries<PartnerApplication>().Where(x=>x.State==EntityState.Added).Select(x=>x.Entity).ToArray())
       activities.Add(new ActivityEvent(application.Id,"partner-application.submitted",1,application.SubmittedAtUtc,"ebyahe",application.CreatedBy!,
         "Submitted a partner application.","/partner-application-details/"+application.Id.ToString("D"),

@@ -101,6 +101,13 @@ small summaries and protected details paths; they exclude payment, passenger,
 banking and document contents. Enable Kafka and import the new topic to deliver;
 disabled publishing retains pending rows.
 
+Booking activities address only active members of the booking's approved partner,
+excluding the creator. Administrators receive them only through that partner
+membership. Recipient snapshots are split into disjoint batches of up to 25 and
+open `/bookings/{bookingId}` in the partner portal. No eligible members produces
+an empty audience for audit, with no administrator fallback. Submission still
+does not reserve seats; successful payment reserves seats during confirmation.
+
 For the authenticated booking intake endpoint, JSON contract, validation and
 frontend behavior, see [Bus booking submissions](docs/bus-bookings.md).
 

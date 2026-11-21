@@ -68,7 +68,7 @@ public sealed class BusRoute
   public BusTerminal OriginTerminal { get; set; } = null!;
   public Guid DestinationTerminalId { get; set; }
   public BusTerminal DestinationTerminal { get; set; } = null!;
-  public int DurationMinutes { get; set; }
+  public int? DurationMinutes { get; set; }
   public bool IsActive { get; set; } = true;
   public bool IsDemo { get; set; }
 }
@@ -83,6 +83,7 @@ public sealed class ScheduledTrip
   public Guid BusRouteId { get; set; }
   public BusRoute BusRoute { get; set; } = null!;
   public DateTimeOffset DepartureAtUtc { get; set; }
+  public int? DurationMinutes { get; set; }
   public decimal BaseFare { get; set; }
   // Remaining seats for this departure. Null means inventory has not been configured.
   public int? AvailableSeats { get; set; }

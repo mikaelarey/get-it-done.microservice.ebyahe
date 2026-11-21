@@ -260,6 +260,11 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("ChangedAtUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .UseCollation("Latin1_General_100_BIN2");
+
                     b.Property<int>("CodeDecodeBookingStatus")
                         .HasColumnType("int");
 
@@ -284,6 +289,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(512)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ChangedBy");
 
                     b.HasIndex("CodeDecodeBookingStatus");
 
@@ -361,7 +368,7 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DestinationTerminalId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("DurationMinutes")
+                    b.Property<int?>("DurationMinutes")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
@@ -389,7 +396,7 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_BusRoutes_DifferentTerminals", "[OriginTerminalId] <> [DestinationTerminalId]");
 
-                            t.HasCheckConstraint("CK_BusRoutes_Duration", "[DurationMinutes] > 0");
+                            t.HasCheckConstraint("CK_BusRoutes_Duration", "[DurationMinutes] IS NULL OR [DurationMinutes] BETWEEN 1 AND 2880");
                         });
                 });
 
@@ -3268,6 +3275,9 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("DepartureAtUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDemo")
                         .HasColumnType("bit");
 
@@ -3290,6 +3300,8 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                     b.ToTable("ScheduledTrips", null, t =>
                         {
                             t.HasCheckConstraint("CK_ScheduledTrips_AvailableSeats", "[AvailableSeats] IS NULL OR [AvailableSeats] BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("CK_ScheduledTrips_Duration", "[DurationMinutes] IS NULL OR [DurationMinutes] BETWEEN 1 AND 2880");
 
                             t.HasCheckConstraint("CK_ScheduledTrips_Fare", "[BaseFare] > 0");
 
@@ -3625,6 +3637,12 @@ namespace EByahe.Infrastructure.Persistence.Migrations
                         .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("EByahe.Domain.Models.RefUser", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .HasPrincipalKey("ExternalUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("EByahe.Domain.Models.BookingStatus", null)
                         .WithMany()

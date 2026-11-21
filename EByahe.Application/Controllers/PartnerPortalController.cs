@@ -48,18 +48,31 @@ public sealed class PartnerPortalController(IPartnerPortalRepository portal, Tim
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalTerminal>>> Terminals([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>
     Ok(await portal.TerminalsAsync(UserId, query.Page, query.PageSize, cancellationToken, query.Search));
 
-  [HttpGet("scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.ReadScheduledTripsPolicy)]
-  public async Task<ActionResult<PartnerRecordsPage<PartnerPortalTrip>>> Trips([FromQuery] PartnerRecordsQuery query,
-    [FromQuery] DateOnly? date, [FromQuery] Guid? terminalId, CancellationToken cancellationToken)
+  [HttpGet("bookings/{id:guid}/cash-payment-summary"), Authorize(Policy = PartnerPortalAuthorization.ConfirmBookingsPolicy)]
+  public async Task<ActionResult<PartnerCashBookingSummary>> CashPaymentSummary(Guid id, CancellationToken cancellationToken)
   {
-    if (date == DateOnly.MinValue || terminalId == Guid.Empty) return BadRequest();
-    var selectedDate = date ?? DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(8)).DateTime);
-    return Ok(await portal.TripsAsync(UserId, query.Page, query.PageSize, selectedDate, terminalId, cancellationToken));
+    var booking = await portal.CashPaymentSummaryAsync(UserId, id, clock.GetUtcNow(), cancellationToken);
+    return booking is null ? NotFound() : Ok(booking);
   }
 
-  [HttpGet("scheduled-trips/filter-terminals"), Authorize(Policy = PartnerPortalAuthorization.ReadScheduledTripsPolicy)]
-  public async Task<ActionResult<IReadOnlyList<PartnerTripFilterTerminal>>> TripFilterTerminals(CancellationToken cancellationToken) =>
-    Ok(await portal.TripFilterTerminalsAsync(UserId, cancellationToken));
+  [HttpGet("scheduled-trips"), Authorize(Policy = PartnerPortalAuthorization.ReadScheduledTripsPolicy)]
+  public async Task<ActionResult<PartnerRecordsPage<PartnerPortalTrip>>> Trips([FromQuery] PartnerRecordsQuery query,
+    [FromQuery] DateOnly? date, [FromQuery] TimeOnly? time, [FromQuery] Guid? originTerminalId,
+    [FromQuery] Guid? destinationTerminalId, CancellationToken cancellationToken)
+  {
+    if (date == DateOnly.MinValue || date == DateOnly.MaxValue || originTerminalId == Guid.Empty || destinationTerminalId == Guid.Empty
+      || time.HasValue && time.Value.Ticks % TimeSpan.TicksPerHour != 0) return BadRequest();
+    var selectedDate = date ?? DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(8)).DateTime);
+    return Ok(await portal.TripsAsync(UserId, query.Page, query.PageSize, selectedDate, time, originTerminalId, destinationTerminalId, cancellationToken));
+  }
+
+  [HttpGet("scheduled-trips/filter-options"), Authorize(Policy = PartnerPortalAuthorization.ReadScheduledTripsPolicy)]
+  public async Task<ActionResult<PartnerTripFilterOptions>> TripFilterOptions([FromQuery] DateOnly? date, CancellationToken cancellationToken)
+  {
+    if (date == DateOnly.MinValue || date == DateOnly.MaxValue) return BadRequest();
+    var selectedDate = date ?? DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(8)).DateTime);
+    return Ok(await portal.TripFilterOptionsAsync(UserId, selectedDate, cancellationToken));
+  }
 
   [HttpGet("users"), Authorize(Policy = PartnerPortalAuthorization.ReadMembersPolicy)]
   public async Task<ActionResult<PartnerRecordsPage<PartnerPortalUser>>> Users([FromQuery] PartnerRecordsQuery query, CancellationToken cancellationToken) =>

@@ -32,6 +32,7 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
   public async Task<PartnerPortalTerminal?> AddAsync(string userId, AddPartnerTerminal command, CancellationToken cancellationToken)
   {
     await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    await LockPartnerAsync(command.PartnerId, cancellationToken);
     var partner = await BusOperators(userId).SingleOrDefaultAsync(partner => partner.Id == command.PartnerId, cancellationToken);
     if (partner is null) return null;
     var (location, barangay) = await ResolveLocationAsync(command.CodeDecodeRegion, command.CodeDecodeProvince,
@@ -41,10 +42,10 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
     CatalogAudit.Record(db, terminal, userId, "Created");
     await PartnerCatalogActivityOutbox.QueueAsync(db, partner.Id, userId, "terminal.created", terminal.Id,
       kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
-    try { await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
+    try { await db.SaveChangesAsync(cancellationToken); await GenerateRoutesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
     catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
     { throw new PartnerTerminalConflictException(); }
-    if (changes is not null) await changes.PublishAsync(["terminals"], userId, partner.Id, cancellationToken);
+    if (changes is not null) await changes.PublishAsync(["terminals", "travel-times", "scheduled-trips"], userId, partner.Id, cancellationToken);
     return new(terminal.Id, terminal.Name, location.Name,
       TerminalAddress.Format(terminal.Address, barangay.Decode, barangay.Municipality.Decode,
         barangay.Municipality.Province.Decode, barangay.Municipality.Province.Region.Decode), partner.DisplayName, terminal.IsActive);
@@ -62,6 +63,8 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
   public async Task<PartnerPortalTerminal?> UpdateAsync(string userId, Guid id, UpdatePartnerTerminal command, CancellationToken cancellationToken)
   {
     await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    await db.Partners.FromSqlInterpolated($"SELECT * FROM Partners WITH (UPDLOCK, HOLDLOCK) WHERE Id IN (SELECT PartnerId FROM BusTerminals WHERE Id = {id})")
+      .SingleOrDefaultAsync(cancellationToken);
     var ids = BusOperators(userId).Select(partner => partner.Id);
     var terminal = await db.BusTerminals.Include(row => row.Location)
       .SingleOrDefaultAsync(row => row.Id == id && ids.Contains(row.PartnerId), cancellationToken);
@@ -81,10 +84,10 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
     CatalogAudit.Record(db, terminal, userId, "Updated", previous);
     await PartnerCatalogActivityOutbox.QueueAsync(db, terminal.PartnerId, userId, "terminal.updated", terminal.Id,
       kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
-    try { await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
+    try { await db.SaveChangesAsync(cancellationToken); await GenerateRoutesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
     catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
     { throw new PartnerTerminalConflictException(); }
-    if (changes is not null) await changes.PublishAsync(["terminals", "scheduled-trips"], userId, terminal.PartnerId, cancellationToken);
+    if (changes is not null) await changes.PublishAsync(["terminals", "travel-times", "scheduled-trips"], userId, terminal.PartnerId, cancellationToken);
     return await db.BusTerminals.AsNoTracking().Where(row => row.Id == id)
       .Select(row => new PartnerPortalTerminal(row.Id, row.Name, row.Location.Name,
         TerminalAddress.Format(row.Address, row.Location.Barangay == null ? null : row.Location.Barangay.Decode,
@@ -92,6 +95,23 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
           row.Location.Province == null ? null : row.Location.Province.Decode,
           row.Location.Region == null ? null : row.Location.Region.Decode), row.Partner.DisplayName, row.IsActive))
       .SingleAsync(cancellationToken);
+  }
+
+  private Task LockPartnerAsync(Guid partnerId, CancellationToken ct) => db.Partners
+    .FromSqlInterpolated($"SELECT * FROM Partners WITH (UPDLOCK, HOLDLOCK) WHERE Id = {partnerId}").SingleOrDefaultAsync(ct);
+
+  private async Task GenerateRoutesAsync(CancellationToken ct)
+  {
+    // Called inside the terminal transaction. Never connect terminals from different partners.
+    var partners = db.ChangeTracker.Entries<BusTerminal>().Select(entry => entry.Entity.PartnerId).Distinct().ToArray();
+    foreach (var partnerId in partners)
+      await db.Database.ExecuteSqlInterpolatedAsync($@"
+        INSERT INTO BusRoutes (Id, PartnerId, OriginTerminalId, DestinationTerminalId, DurationMinutes, IsActive, IsDemo)
+        SELECT NEWID(), origin.PartnerId, origin.Id, destination.Id, NULL, 1, 0
+        FROM BusTerminals origin JOIN BusTerminals destination ON destination.PartnerId = origin.PartnerId AND destination.Id <> origin.Id
+        WHERE origin.PartnerId = {partnerId} AND NOT EXISTS (
+          SELECT 1 FROM BusRoutes route WHERE route.PartnerId = origin.PartnerId
+            AND route.OriginTerminalId = origin.Id AND route.DestinationTerminalId = destination.Id)", ct);
   }
 
   private async Task<(Location Location, CodeDecodeBarangay Barangay)> ResolveLocationAsync(int region, int province, int municipality, int barangayCode,
@@ -126,6 +146,7 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
   {
     if (rows.Count is < 1 or > 500 || rows.Any(row => row.Terminal.PartnerId != partnerId)) throw new ArgumentException("Invalid terminal import batch.");
     await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    await LockPartnerAsync(partnerId, cancellationToken);
     var partner = await BusOperators(userId).SingleOrDefaultAsync(partner => partner.Id == partnerId, cancellationToken);
     if (partner is null) return null;
     if (!await db.Uploads.AnyAsync(upload => upload.Id == uploadId && upload.CreatedBy == userId && upload.UploadType == UploadTypeCodes.Terminals, cancellationToken))
@@ -187,10 +208,10 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
     }
     await PartnerCatalogActivityOutbox.QueueImportAsync(db, partner.Id, userId, "terminals.imported", rows.Count, uploadId,
       kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
-    try { await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
+    try { await db.SaveChangesAsync(cancellationToken); await GenerateRoutesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
     catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
     { throw new PartnerTerminalConflictException(); }
-    if (changes is not null) await changes.PublishAsync(["terminals"], userId, partner.Id, cancellationToken);
+    if (changes is not null) await changes.PublishAsync(["terminals", "travel-times", "scheduled-trips"], userId, partner.Id, cancellationToken);
     return new(rows.Count, []);
   }
 

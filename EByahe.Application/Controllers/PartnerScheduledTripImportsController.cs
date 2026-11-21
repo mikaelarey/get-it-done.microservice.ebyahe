@@ -31,9 +31,10 @@ public sealed class PartnerScheduledTripImportsController(IPartnerScheduledTripR
   public async Task<ActionResult<PartnerScheduledTripImportResult>> Import([FromForm] ImportScheduledTripsRequest request, CancellationToken ct)
   {
     if (request.PartnerId == Guid.Empty) return BadRequest(new PartnerScheduledTripImportResult(0, [new("", 0, "Partner", "Select a partner.")]));
-    if (!(await trips.OptionsAsync(UserId, ct)).Workspaces.Any(workspace => workspace.Id == request.PartnerId)) return Forbid();
+    var options = await trips.OptionsAsync(UserId, ct);
+    if (!options.Workspaces.Any(workspace => workspace.Id == request.PartnerId)) return Forbid();
     var uploadId = await uploads.AddAsync(UserId, UploadTypeCodes.ScheduledTrips, ct);
-    var parsed = await ScheduledTripExcelImport.ReadAsync(request.File, request.PartnerId, clock.GetUtcNow(), ct);
+    var parsed = await ScheduledTripExcelImport.ReadAsync(request.File, request.PartnerId, clock.GetUtcNow(), ct, options);
     if (parsed.Errors.Count != 0) return BadRequest(new PartnerScheduledTripImportResult(0, parsed.Errors, uploadId));
     var result = await trips.ImportAsync(UserId, request.PartnerId, parsed.Rows, uploadId, ct);
     return result is null ? Forbid() : result.Errors.Count != 0 ? BadRequest(result) : Ok(result);

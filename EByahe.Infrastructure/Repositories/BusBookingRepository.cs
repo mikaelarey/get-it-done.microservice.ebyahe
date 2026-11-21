@@ -91,7 +91,7 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
     && trip.DepartureAtUtc == expected.DepartureAtUtc && trip.BaseFare == expected.BaseFare
     && trip.Bus.SeatCapacity == expected.Bus.SeatCapacity && trip.Bus.CodeDecodeBusClass == expected.Bus.CodeDecodeBusClass
     && trip.Bus.PlateNumber == expected.Bus.PlateNumber && trip.Partner.DisplayName == expected.Partner.DisplayName
-    && trip.BusRoute.DurationMinutes == expected.BusRoute.DurationMinutes
+    && (trip.DurationMinutes ?? trip.BusRoute.DurationMinutes) == (expected.DurationMinutes ?? expected.BusRoute.DurationMinutes)
     && trip.BusRoute.OriginTerminalId == expected.BusRoute.OriginTerminalId && trip.BusRoute.DestinationTerminalId == expected.BusRoute.DestinationTerminalId
     && trip.BusRoute.OriginTerminal.Name == expected.BusRoute.OriginTerminal.Name && trip.BusRoute.DestinationTerminal.Name == expected.BusRoute.DestinationTerminal.Name
     && trip.BusRoute.OriginTerminal.Location.Name == expected.BusRoute.OriginTerminal.Location.Name

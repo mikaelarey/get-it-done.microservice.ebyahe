@@ -21,6 +21,7 @@ public sealed class BusBookingStatusLog
   [System.ComponentModel.DataAnnotations.Schema.NotMapped]
   public string? PaymentType { get => CodeDecodePaymentType is { } code ? CodeDecodeValues.Decode("PaymentTypes", code) : null; set => CodeDecodePaymentType = value is null ? null : CodeDecodeValues.Code("PaymentTypes", value); }
   public DateTimeOffset ChangedAtUtc { get; set; }
+  public string? ChangedBy { get; set; }
   public Guid? EventId { get; set; }
   public string Remarks { get; set; } = "";
 }

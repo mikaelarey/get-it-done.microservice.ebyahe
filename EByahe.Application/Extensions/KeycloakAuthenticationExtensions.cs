@@ -51,6 +51,9 @@ public static class KeycloakAuthenticationExtensions
       };
     });
     services.AddAuthorization(options => {
+        options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ConfirmBookingsPolicy,
+          policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+            EByahe.Application.Authorization.PartnerPortalAuthorization.CanConfirmBookings(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadBookingsPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadBookings(context.User)));
@@ -60,6 +63,10 @@ public static class KeycloakAuthenticationExtensions
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteTerminalsPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteTerminals(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadTravelTimesPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context => EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadTravelTimes(context.User)));
+      options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.WriteTravelTimesPolicy,
+        policy => policy.RequireAuthenticatedUser().RequireAssertion(context => EByahe.Application.Authorization.PartnerPortalAuthorization.CanWriteTravelTimes(context.User)));
       options.AddPolicy(EByahe.Application.Authorization.PartnerPortalAuthorization.ReadScheduledTripsPolicy,
         policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
           EByahe.Application.Authorization.PartnerPortalAuthorization.CanReadScheduledTrips(context.User)));

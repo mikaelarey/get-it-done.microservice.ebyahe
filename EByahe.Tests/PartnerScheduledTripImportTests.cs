@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -19,6 +21,7 @@ public sealed partial class SqlServerDatabaseTests
   public async Task ScheduledTripImportCreatesDateSheetsRoutesInventoryAuditLinksAndOneNotificationAtomically()
   {
     var (partner, bus, origin, destination) = await SeedPartnerTripWorkspace(); await using var db = CreateDatabase();
+    db.BusRoutes.Add(new BusRoute { PartnerId = partner.Id, OriginTerminalId = origin.Id, DestinationTerminalId = destination.Id, DurationMinutes = 120 }); await db.SaveChangesAsync();
     using var factory = new PartnerApiFactory(ConnectionString); using var client = factory.AuthenticatedClient();
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("scheduled-trip.read", "scheduled-trip.write")));
     var date = DateOnly.FromDateTime(DateTimeOffset.UtcNow.AddDays(3).Date); var first = date.ToString("yyyy-MM-dd"); var second = date.AddDays(1).ToString("yyyy-MM-dd");
@@ -26,7 +29,28 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.OK, template.StatusCode); Assert.True(template.Headers.CacheControl!.NoStore);
     Assert.Equal("Scheduled-trip-import-template.xlsx", template.Content.Headers.ContentDisposition!.FileNameStar);
     var values = ScheduledTripExcelImportTests.Values(bus.Id, origin.Id, destination.Id);
-    using var upload = TripUpload(partner.Id, (first, [values]), (second, [values]));
+    // Import the friendly labels from the actual downloaded template, preserving its hidden mappings.
+    using var workbookStream = new MemoryStream(); workbookStream.Write(await template.Content.ReadAsByteArrayAsync()); workbookStream.Position = 0;
+    using (var workbook = SpreadsheetDocument.Open(workbookStream, true))
+    {
+      var part = workbook.WorkbookPart!; var sheets = part.Workbook!.Sheets!.Elements<Sheet>().ToArray();
+      var lists = (WorksheetPart)part.GetPartById(sheets.Single(sheet => sheet.Name == "_Lists").Id!.Value!);
+      var choices = lists.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Skip(1).ToArray();
+      string Label(Guid id) => choices.Single(row => row.Elements<Cell>().Any(cell => cell.InnerText == id.ToString())).Elements<Cell>().First().InnerText;
+      var busLabel = choices.Single(row => row.Elements<Cell>().ElementAt(4).InnerText == bus.Id.ToString()).Elements<Cell>().ElementAt(1).InnerText;
+      string[] friendly = [Label(origin.Id), Label(destination.Id), busLabel, values[3], values[4], values[5]];
+      foreach (var sheet in sheets.Where(sheet => sheet.Name == first || sheet.Name == second))
+      {
+        var worksheet = (WorksheetPart)part.GetPartById(sheet.Id!.Value!); var index = 0;
+        foreach (var cell in worksheet.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().ElementAt(1).Elements<Cell>()) {
+          if (index != 4) ScheduledTripExcelImportTests.SetValue(cell, friendly[index]);
+          index++;
+        }
+        worksheet.Worksheet!.Save();
+      }
+    }
+    using var upload = new MultipartFormDataContent(); upload.Add(new StringContent(partner.Id.ToString()), "partnerId");
+    upload.Add(new ByteArrayContent(workbookStream.ToArray()), "file", "trips.xlsx");
     using var response = await client.PostAsync("/api/partner/scheduled-trips/import", upload); Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     var result = (await response.Content.ReadFromJsonAsync<PartnerScheduledTripImportResult>())!; Assert.Equal(2, result.ImportedCount); Assert.Empty(result.Errors);
     var record = Assert.Single(await db.Uploads.ToArrayAsync()); Assert.Equal(UploadTypeCodes.ScheduledTrips, record.UploadType); Assert.Equal(record.Id, result.UploadId);

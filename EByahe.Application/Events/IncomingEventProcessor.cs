@@ -26,12 +26,10 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
           if (payment is null || payment.EventId == Guid.Empty || payment.PaymentId == Guid.Empty || payment.BookingId == Guid.Empty
             || (payment.EventType is not ("payment.completed" or "payment.failed" or "payment.cancelled")) || payment.SchemaVersion != 1
             || (payment.EventType == "payment.completed" ? payment.PaymentStatus != "Payment Success" : payment.PaymentStatus != (payment.EventType == "payment.cancelled" ? "Cancelled" : "Payment Failed"))
-            || payment.PaymentType is not (null or "GCash" or "Maya" or "Credit/Debit Card") || payment.OccurredAtUtc == default
-            || payment.Provider != "paymongo" || payment.Currency != "PHP" || payment.AmountCentavos < 100
+            || payment.OccurredAtUtc == default || !ValidPaymentProvider(payment)
+            || payment.Currency != "PHP" || payment.AmountCentavos < 100
             || string.IsNullOrWhiteSpace(payment.OwnerId) || payment.OwnerId.Length > 255
             || payment.BookingReference is not { Length: 35 } || !payment.BookingReference.StartsWith("BK-", StringComparison.Ordinal)
-            || payment.EventType != "payment.cancelled" && (payment.ProviderSessionId is not { Length: > 3 and <= 100 } || !payment.ProviderSessionId.StartsWith("cs_", StringComparison.Ordinal)
-              || payment.ProviderPaymentId is not { Length: > 4 and <= 100 } || !payment.ProviderPaymentId.StartsWith("pay_", StringComparison.Ordinal))
             || record.Key != payment.BookingId.ToString()) throw new InvalidDataException("Invalid payment.completed v1 event.");
           await (payments ?? throw new InvalidOperationException("Payment repository not configured."))
             .CompleteAsync(id, payment, Now(), cancellationToken);
@@ -83,6 +81,21 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
   }
 
   private DateTime Now() => clock.GetUtcNow().UtcDateTime;
+
+  private static bool ValidPaymentProvider(PaymentCompletedEvent payment) => payment.Provider switch
+  {
+    "cash" => payment.EventType == "payment.completed" && payment.PaymentType == "Cash"
+      && payment.PartnerId is { } partner && partner != Guid.Empty
+      && !string.IsNullOrWhiteSpace(payment.AcceptedBy) && payment.AcceptedBy.Length <= 255
+      && payment.AcceptedBy == payment.AcceptedBy.Trim()
+      && payment.ProviderSessionId == "" && payment.ProviderPaymentId == "",
+    "paymongo" => payment.PaymentType is null or "GCash" or "Maya" or "Credit/Debit Card"
+      && payment.PartnerId is null && payment.AcceptedBy is null
+      && (payment.EventType == "payment.cancelled" || payment.ProviderSessionId is { Length: > 3 and <= 100 }
+        && payment.ProviderSessionId.StartsWith("cs_", StringComparison.Ordinal) && payment.ProviderPaymentId is { Length: > 4 and <= 100 }
+        && payment.ProviderPaymentId.StartsWith("pay_", StringComparison.Ordinal)),
+    _ => false
+  };
 
   private static UserRegisteredEvent ReadRegistration(ConsumedRecord record)
   {

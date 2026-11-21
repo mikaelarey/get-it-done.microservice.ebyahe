@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Infrastructure.Repositories;
 
-public sealed class BookingPaymentRepository(EByaheDbContext database) : IBookingPaymentRepository
+public sealed class BookingPaymentRepository(EByaheDbContext database, IRecordChangePublisher? changes = null) : IBookingPaymentRepository
 {
   public async Task CompleteAsync(Guid incomingId, PaymentCompletedEvent payment, DateTime now, CancellationToken cancellationToken)
   {
@@ -21,15 +21,23 @@ public sealed class BookingPaymentRepository(EByaheDbContext database) : IBookin
       $"SELECT * FROM [BusBookings] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {payment.BookingId}").SingleOrDefaultAsync(cancellationToken)
       ?? throw new InvalidDataException("Payment references a missing booking.");
     using var snapshot = JsonDocument.Parse(booking.DetailsJson);
+    var cash = payment.Provider == "cash";
+    var cashBooking = snapshot.RootElement.GetProperty("payment").GetProperty("method").GetString() == "cash";
     if (booking.CreatedBy != payment.OwnerId || booking.Reference != payment.BookingReference
       || checked((long)(booking.Total * 100m)) != payment.AmountCentavos || payment.Currency != "PHP"
-      || snapshot.RootElement.GetProperty("payment").GetProperty("method").GetString() == "cash"
-      || payment.PaymentType is not (null or "GCash" or "Maya" or "Credit/Debit Card")
+      || cash != cashBooking || (cash ? payment.PaymentType != "Cash" : payment.PaymentType is not (null or "GCash" or "Maya" or "Credit/Debit Card"))
       || booking.PaymentType is not null && payment.PaymentType is not null && booking.PaymentType != payment.PaymentType)
       throw new InvalidDataException("Payment details do not match this booking.");
+    if (cash && (payment.PartnerId is null || string.IsNullOrWhiteSpace(payment.AcceptedBy)
+      || !await database.ScheduledTrips.AnyAsync(trip => trip.Id == booking.ScheduledTripId && trip.PartnerId == payment.PartnerId, cancellationToken)
+      || !await database.PartnerUsers.AnyAsync(member => member.PartnerId == payment.PartnerId
+        && member.RefUser.ExternalUserId == payment.AcceptedBy, cancellationToken)))
+      throw new InvalidDataException("Cash receipt has an invalid partner or accepting user.");
+    // Membership was verified synchronously before the payment service committed the receipt.
+    // Do not discard money already received if membership changes while the event is in transit.
     if (booking.Status == "Cancelled" && payment.PaymentStatus != "Cancelled") throw new InvalidDataException("A cancelled booking cannot accept payment.");
     if (booking.PaymentId is not null && payment.PaymentStatus == "Payment Success"
-      && (booking.PaymentId != payment.PaymentId || booking.ProviderPaymentId != payment.ProviderPaymentId))
+      && (booking.PaymentId != payment.PaymentId || booking.ProviderPaymentId != (cash ? null : payment.ProviderPaymentId)))
       throw new InvalidDataException("A different payment already completed this booking.");
     if (payment.PaymentStatus is not ("Payment Success" or "Payment Failed" or "Cancelled")
       || payment.EventType != (payment.PaymentStatus == "Payment Success" ? "payment.completed" : payment.PaymentStatus == "Cancelled" ? "payment.cancelled" : "payment.failed"))
@@ -51,21 +59,24 @@ public sealed class BookingPaymentRepository(EByaheDbContext database) : IBookin
         booking.PaymentStatus = "Payment Success";
         booking.PaymentType ??= payment.PaymentType;
         booking.PaymentId = payment.PaymentId;
-        booking.ProviderPaymentId = payment.ProviderPaymentId;
+        booking.ProviderPaymentId = cash ? null : payment.ProviderPaymentId;
         booking.PaidAtUtc = payment.OccurredAtUtc;
         var passengers = snapshot.RootElement.GetProperty("booking").GetProperty("passengers").GetArrayLength();
         var trip = await database.ScheduledTrips.FromSqlInterpolated(
           $"SELECT * FROM [ScheduledTrips] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {booking.ScheduledTripId}")
-          .Include(x => x.Bus).SingleOrDefaultAsync(cancellationToken);
+          .Include(x => x.Bus).Include(x => x.BusRoute).ThenInclude(x => x.OriginTerminal)
+          .Include(x => x.BusRoute).ThenInclude(x => x.DestinationTerminal).SingleOrDefaultAsync(cancellationToken);
         if (trip is not null && trip.Status == "Scheduled" && trip.DepartureAtUtc > new DateTimeOffset(now, TimeSpan.Zero)
+          && (!cash || trip.Bus.IsActive && trip.BusRoute.IsActive && trip.BusRoute.OriginTerminal.IsActive && trip.BusRoute.DestinationTerminal.IsActive)
           && trip.AvailableSeats is { } available && Math.Min(available, trip.Bus.SeatCapacity) >= passengers)
         {
           var previousTrip = CatalogAudit.Snapshot(trip);
           trip.AvailableSeats = Math.Min(available, trip.Bus.SeatCapacity) - passengers;
-          CatalogAudit.Record(database, trip, booking.CreatedBy, "Updated", previousTrip);
+          CatalogAudit.Record(database, trip, cash ? payment.AcceptedBy! : booking.CreatedBy, "Updated", previousTrip);
           booking.ReservedSeats = passengers;
           booking.Status = "Confirmed";
-          note = "Payment success verified; booking confirmed and seats reserved atomically.";
+          note = cash ? "Cash payment received by partner; booking confirmed and seats reserved atomically."
+            : "Payment success verified; booking confirmed and seats reserved atomically.";
         }
         else
         {
@@ -83,7 +94,8 @@ public sealed class BookingPaymentRepository(EByaheDbContext database) : IBookin
       {
         BookingId = booking.Id, PreviousStatus = previousStatus, Status = booking.Status,
         PreviousPaymentStatus = previousPaymentStatus, PaymentStatus = booking.PaymentStatus,
-        PaymentType = booking.PaymentType, ChangedAtUtc = new DateTimeOffset(now, TimeSpan.Zero), EventId = payment.EventId, Remarks = note
+        PaymentType = booking.PaymentType, ChangedAtUtc = new DateTimeOffset(now, TimeSpan.Zero), ChangedBy = cash ? payment.AcceptedBy : null,
+        EventId = payment.EventId, Remarks = note
       });
     }
     receipt.MessageId = payment.EventId;
@@ -99,5 +111,10 @@ public sealed class BookingPaymentRepository(EByaheDbContext database) : IBookin
     // Confirming the booking and marking the inbox record processed are atomic.
     await database.SaveChangesAsync(cancellationToken);
     await transaction.CommitAsync(cancellationToken);
+    if (changes is not null)
+    {
+      var partnerId = await database.ScheduledTrips.Where(x => x.Id == booking.ScheduledTripId).Select(x => x.PartnerId).SingleOrDefaultAsync(cancellationToken);
+      await changes.PublishAsync(["bookings", "scheduled-trips"], booking.CreatedBy, partnerId, cancellationToken);
+    }
   }
 }

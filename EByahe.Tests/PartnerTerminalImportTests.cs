@@ -28,6 +28,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.OK, response.StatusCode); Assert.True(response.Headers.CacheControl!.NoStore);
     Assert.Equal(2, (await response.Content.ReadFromJsonAsync<PartnerTerminalImportResult>())!.ImportedCount);
     Assert.Equal(2, await db.BusTerminals.CountAsync()); Assert.Equal(initialLocations + 1, await db.Locations.CountAsync());
+    Assert.Equal(2, await db.BusRoutes.CountAsync()); Assert.All(await db.BusRoutes.ToArrayAsync(), route => Assert.Null(route.DurationMinutes));
     Assert.Equal(initialEvents + 1, await db.OutboxMessages.CountAsync());
     var summary = Assert.Single(await db.OutboxMessages.Where(row => row.EventType == "terminals.imported").ToArrayAsync());
     using var payload = JsonDocument.Parse(summary.Payload);
@@ -61,10 +62,12 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.InternalServerError, (await client.PostAsync(api, failed)).StatusCode);
     Assert.Equal(5, await db.Uploads.CountAsync()); Assert.Equal(2, await db.UploadRecords.CountAsync()); Assert.Equal(2, await db.TerminalLogs.CountAsync());
     Assert.Equal(2, await db.BusTerminals.CountAsync()); Assert.Equal(initialLocations + 1, await db.Locations.CountAsync());
+    Assert.Equal(2, await db.BusRoutes.CountAsync()); Assert.All(await db.BusRoutes.ToArrayAsync(), route => Assert.Null(route.DurationMinutes));
     Assert.Equal(initialEvents + 1, await db.OutboxMessages.CountAsync());
     await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectTerminalImport");
     using var retry = TerminalUpload(partner.Id, other); Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(api, retry)).StatusCode);
     Assert.Equal(initialLocations + 2, await db.Locations.CountAsync());
+    Assert.Equal(6, await db.BusRoutes.CountAsync());
     Assert.Equal(initialEvents + 2, await db.OutboxMessages.CountAsync());
     Assert.Equal(6, await db.Uploads.CountAsync()); Assert.Equal(3, await db.UploadRecords.CountAsync()); Assert.Equal(3, await db.TerminalLogs.CountAsync());
     var messages = await db.OutboxMessages.Where(row => row.EventType == "terminals.imported").Select(row => row.Payload).ToArrayAsync();
@@ -82,6 +85,7 @@ public sealed partial class SqlServerDatabaseTests
     using (responses[0]) Assert.Equal(HttpStatusCode.OK, responses[0].StatusCode);
     using (responses[1]) Assert.Equal(HttpStatusCode.Created, responses[1].StatusCode);
     await using var db = CreateDatabase(); Assert.Single(await db.Locations.ToArrayAsync()); Assert.Equal(2, await db.BusTerminals.CountAsync());
+    Assert.Equal(2, await db.BusRoutes.CountAsync());
   }
   [SqlServerFact]
   public async Task TerminalImportRequiresTerminalWriteRoleAndActiveApprovedMembership()

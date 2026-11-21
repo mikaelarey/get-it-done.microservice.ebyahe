@@ -54,24 +54,38 @@ public sealed partial class PartnerPortalRepository(EByaheDbContext database) : 
     return Page(query, page, pageSize, cancellationToken);
   }
 
-  public async Task<IReadOnlyList<PartnerTripFilterTerminal>> TripFilterTerminalsAsync(string userId, CancellationToken cancellationToken)
+  private IQueryable<ScheduledTrip> VisibleTrips(string userId, DateOnly date, TimeOnly? time = null)
   {
     var ids = PartnerIds(userId);
-    // Include inactive terminals so historical schedules can still be filtered.
-    return await database.BusTerminals.AsNoTracking().Where(terminal => ids.Contains(terminal.PartnerId))
-      .OrderBy(terminal => terminal.Name).ThenBy(terminal => terminal.Partner.DisplayName).ThenBy(terminal => terminal.Id)
-      .Select(terminal => new PartnerTripFilterTerminal(terminal.Id, terminal.Name, terminal.Location.Name, terminal.Partner.DisplayName))
-      .ToArrayAsync(cancellationToken);
+    var start = new DateTimeOffset(date.ToDateTime(time ?? TimeOnly.MinValue), TimeSpan.FromHours(8)).ToUniversalTime();
+    var end = time.HasValue ? start.AddHours(1) : start.AddDays(1);
+    return database.ScheduledTrips.AsNoTracking().Where(row => ids.Contains(row.PartnerId)
+      && row.DepartureAtUtc >= start && row.DepartureAtUtc < end);
   }
 
-  public Task<PartnerRecordsPage<PartnerPortalTrip>> TripsAsync(string userId, int page, int pageSize, DateOnly date, Guid? terminalId, CancellationToken cancellationToken)
+  public async Task<PartnerTripFilterOptions> TripFilterOptionsAsync(string userId, DateOnly date, CancellationToken cancellationToken)
   {
-    var ids = PartnerIds(userId);
+    var trips = VisibleTrips(userId, date);
     var start = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(8)).ToUniversalTime();
-    var end = start.AddDays(1);
-    var query = database.ScheduledTrips.AsNoTracking().Where(row => ids.Contains(row.PartnerId)
-        && row.DepartureAtUtc >= start && row.DepartureAtUtc < end
-        && (!terminalId.HasValue || row.BusRoute.OriginTerminalId == terminalId || row.BusRoute.DestinationTerminalId == terminalId))
+    // Bucket by elapsed hour from Manila midnight, independent of the SQL timestamp's stored offset.
+    var hours = await trips.Select(trip => EF.Functions.DateDiffHour(start, trip.DepartureAtUtc)).Distinct()
+      .OrderBy(hour => hour).ToArrayAsync(cancellationToken);
+    var origins = await trips.Select(trip => new { Id = trip.BusRoute.OriginTerminalId,
+      trip.BusRoute.OriginTerminal.Name, Location = trip.BusRoute.OriginTerminal.Location.Name, Partner = trip.Partner.DisplayName }).Distinct()
+      .OrderBy(terminal => terminal.Name).ThenBy(terminal => terminal.Partner).ThenBy(terminal => terminal.Id).ToArrayAsync(cancellationToken);
+    var destinations = await trips.Select(trip => new { Id = trip.BusRoute.DestinationTerminalId,
+      trip.BusRoute.DestinationTerminal.Name, Location = trip.BusRoute.DestinationTerminal.Location.Name, Partner = trip.Partner.DisplayName }).Distinct()
+      .OrderBy(terminal => terminal.Name).ThenBy(terminal => terminal.Partner).ThenBy(terminal => terminal.Id).ToArrayAsync(cancellationToken);
+    return new(hours.Select(hour => hour.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + ":00").ToArray(),
+      origins.Select(terminal => new PartnerTripFilterTerminal(terminal.Id, terminal.Name, terminal.Location, terminal.Partner)).ToArray(),
+      destinations.Select(terminal => new PartnerTripFilterTerminal(terminal.Id, terminal.Name, terminal.Location, terminal.Partner)).ToArray());
+  }
+
+  public Task<PartnerRecordsPage<PartnerPortalTrip>> TripsAsync(string userId, int page, int pageSize, DateOnly date,
+    TimeOnly? time, Guid? originTerminalId, Guid? destinationTerminalId, CancellationToken cancellationToken)
+  {
+    var query = VisibleTrips(userId, date, time).Where(row => (!originTerminalId.HasValue || row.BusRoute.OriginTerminalId == originTerminalId)
+        && (!destinationTerminalId.HasValue || row.BusRoute.DestinationTerminalId == destinationTerminalId))
       .OrderBy(row => row.DepartureAtUtc).ThenBy(row => row.Id)
       .Select(row => new PartnerPortalTrip(row.Id, row.BusRoute.OriginTerminal.Location.Name, row.BusRoute.DestinationTerminal.Location.Name,
         row.Partner.DisplayName, row.Bus.PlateNumber, row.Bus.BusClass.Decode, row.DepartureAtUtc, row.AvailableSeats, row.BaseFare, row.Status));

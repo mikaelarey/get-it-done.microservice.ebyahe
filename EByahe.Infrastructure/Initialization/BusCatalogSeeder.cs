@@ -75,7 +75,7 @@ public sealed class BusCatalogSeeder(EByaheDbContext db, TimeProvider clock)
           var departure = new DateTimeOffset(today.AddDays(day).ToDateTime(Times[(option.Number - 1) % Times.Length]), TimeSpan.FromHours(8)).ToUniversalTime();
           if (!existing.Add((bus.Id, departure))) continue;
           db.ScheduledTrips.Add(new ScheduledTrip { PartnerId = partner.Id, BusId = bus.Id, BusRouteId = route.Id,
-            DepartureAtUtc = departure, BaseFare = option.Fare, AvailableSeats = bus.SeatCapacity, IsDemo = true });
+            DepartureAtUtc = departure, DurationMinutes = route.DurationMinutes, BaseFare = option.Fare, AvailableSeats = bus.SeatCapacity, IsDemo = true });
         }
       }
     }

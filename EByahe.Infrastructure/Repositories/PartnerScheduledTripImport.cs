@@ -35,15 +35,17 @@ public sealed partial class PartnerScheduledTripRepository
       if (!buses.ContainsKey(trip.BusId)) Error("Bus", "Select an active bus belonging to this partner. Download a new template to refresh the choices.");
       if (!terminals.Contains(trip.OriginTerminalId)) Error("Origin terminal", "Select an active origin terminal belonging to this partner.");
       if (!terminals.Contains(trip.DestinationTerminalId) || trip.OriginTerminalId == trip.DestinationTerminalId) Error("Destination terminal", "Select a different active destination terminal belonging to this partner.");
-      if (routes.TryGetValue((trip.OriginTerminalId, trip.DestinationTerminalId), out var route) && (!route.IsActive || route.DurationMinutes != trip.DurationMinutes))
+      if (routes.TryGetValue((trip.OriginTerminalId, trip.DestinationTerminalId), out var route) && route.DurationMinutes == null)
+        Error("Duration (minutes)", "Configure this route in Travel time setup before importing scheduled trips.");
+      else if (route is not null && (!route.IsActive || route.DurationMinutes != trip.DurationMinutes))
         Error("Duration (minutes)", "This route is inactive or its travel time has changed. Download a new template for the current route details.");
     }
     if (errors.Count != 0) return new(0, errors, uploadId);
     var start = rows.Min(row => row.Trip.DepartureAtUtc); var end = rows.Max(row => row.Trip.DepartureAtUtc.AddMinutes(row.Trip.DurationMinutes));
     var busIds = rows.Select(row => row.Trip.BusId).Distinct().ToArray();
     var existing = await db.ScheduledTrips.Where(trip => busIds.Contains(trip.BusId) && trip.Status == "Scheduled"
-      && trip.DepartureAtUtc < end && trip.DepartureAtUtc.AddMinutes(trip.BusRoute.DurationMinutes) > start)
-      .Select(trip => new { trip.BusId, Departure = trip.DepartureAtUtc, Duration = trip.BusRoute.DurationMinutes }).ToArrayAsync(ct);
+      && trip.DepartureAtUtc < end && trip.DepartureAtUtc.AddMinutes(trip.DurationMinutes ?? trip.BusRoute.DurationMinutes ?? 0) > start)
+      .Select(trip => new { trip.BusId, Departure = trip.DepartureAtUtc, Duration = trip.DurationMinutes ?? trip.BusRoute.DurationMinutes ?? 0 }).ToArrayAsync(ct);
     var accepted = new List<PartnerScheduledTripImportRow>();
     var durations = new Dictionary<(Guid, Guid), int>();
     foreach (var row in rows)
@@ -68,6 +70,7 @@ public sealed partial class PartnerScheduledTripRepository
         db.BusRoutes.Add(route); routes.Add(key, route);
       }
       var trip = new ScheduledTrip { PartnerId = partnerId, BusId = command.BusId, BusRoute = route, BusRouteId = route.Id,
+        DurationMinutes = command.DurationMinutes,
         DepartureAtUtc = command.DepartureAtUtc.ToUniversalTime(), BaseFare = command.BaseFare, AvailableSeats = buses[command.BusId].SeatCapacity };
       db.ScheduledTrips.Add(trip);
       db.UploadRecords.Add(new UploadRecord { UploadId = uploadId, ScheduledTripId = trip.Id });

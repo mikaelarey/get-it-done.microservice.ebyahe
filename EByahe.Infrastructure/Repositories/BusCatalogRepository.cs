@@ -11,7 +11,7 @@ public sealed class BusCatalogRepository(EByaheDbContext db, TimeProvider clock)
   {
     var now = clock.GetUtcNow();
     return db.ScheduledTrips.AsNoTracking().Where(x => x.DepartureAtUtc > now && x.Status == "Scheduled" && (!requireAvailableSeats || x.AvailableSeats > 0)
-      && x.Partner.Status == "Approved" && x.Bus.IsActive && x.BusRoute.IsActive
+      && (x.DurationMinutes > 0 || x.BusRoute.DurationMinutes > 0) && x.Partner.Status == "Approved" && x.Bus.IsActive && x.BusRoute.IsActive
       && x.BusRoute.OriginTerminal.IsActive && x.BusRoute.DestinationTerminal.IsActive
       && x.BusRoute.OriginTerminal.Location.IsActive && x.BusRoute.DestinationTerminal.Location.IsActive);
   }

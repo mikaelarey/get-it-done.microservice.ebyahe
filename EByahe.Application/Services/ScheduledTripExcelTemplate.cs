@@ -10,8 +10,20 @@ public static class ScheduledTripExcelTemplate
 {
   public const string FileName = "Scheduled-trip-import-template.xlsx";
   public static readonly string[] Headers = ["Origin terminal", "Destination terminal", "Bus", "Departure time (Manila)", "Duration (minutes)", "Fare (PHP)"];
-  public static string TerminalLabel(PartnerTripTerminal terminal) => $"{terminal.Name} ({terminal.Location}) | {terminal.Id:D}";
-  public static string BusLabel(PartnerTripBus bus) => $"{bus.FleetNumber} - {bus.PlateNumber ?? "No plate"} | {bus.Id:D}";
+  public static string TerminalLabel(PartnerTripTerminal terminal) => $"{terminal.Name} ({terminal.Location})";
+  public static string BusLabel(PartnerTripBus bus) => $"{bus.FleetNumber} - {bus.PlateNumber ?? "No plate"}";
+  public static string DurationFormula(int row) =>
+    $"IF(OR(A{row}=\"\",B{row}=\"\"),\"\",IFERROR(VLOOKUP(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(A{row}&CHAR(9)&B{row},\"~\",\"~~\"),\"*\",\"~*\"),\"?\",\"~?\"),RouteTravelTimes,2,FALSE),\"\"))";
+
+  private static string[] UniqueLabels(IEnumerable<string> labels)
+  {
+    var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    return labels.Select(label => {
+      var choice = label; var number = 1;
+      while (!used.Add(choice)) choice = $"{label} [{++number}]";
+      return choice;
+    }).ToArray();
+  }
 
   public static byte[] Generate(PartnerTripOptions options, Guid partnerId, DateOnly startDate, DateOnly endDate)
   {
@@ -19,6 +31,10 @@ public static class ScheduledTripExcelTemplate
     var buses = options.Buses.Where(bus => bus.PartnerId == partnerId).ToArray();
     var terminals = options.Terminals.Where(terminal => terminal.PartnerId == partnerId).ToArray();
     if (buses.Length == 0 || terminals.Length < 2) throw new ArgumentException("At least one active bus and two active terminals are required.");
+    var terminalLabels = UniqueLabels(terminals.Select(TerminalLabel));
+    var busLabels = UniqueLabels(buses.Select(BusLabel));
+    var routes = options.Routes.Where(route => route.PartnerId == partnerId).ToArray();
+    var labelsByTerminal = terminals.Select((terminal, index) => (terminal.Id, Label: terminalLabels[index])).ToDictionary(terminal => terminal.Id, terminal => terminal.Label);
     using var stream = new MemoryStream();
     using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
     {
@@ -47,9 +63,16 @@ public static class ScheduledTripExcelTemplate
         for (var rowNumber = 1; rowNumber <= rowCount; rowNumber++)
         {
           var row = new Row { RowIndex = (uint)rowNumber, Height = rowNumber == 1 ? 24 : 20, CustomHeight = true };
-          for (var column = 0; column < widths.Length; column++) row.Append(new Cell {
-            CellReference = $"{(char)('A' + column)}{rowNumber}", StyleIndex = rowNumber == 1 ? 2U : trip && column == 3 ? 3U : trip && column == 5 ? 4U : 1U,
-            DataType = CellValues.InlineString, InlineString = new InlineString(new Text(rowNumber <= values.Count && column < values[rowNumber - 1].Length ? values[rowNumber - 1][column] : "")) });
+          for (var column = 0; column < widths.Length; column++) {
+            var cell = new Cell { CellReference = $"{(char)('A' + column)}{rowNumber}", StyleIndex = rowNumber == 1 ? 2U : trip && column == 3 ? 3U : trip && column == 5 ? 4U : 1U };
+            if (trip && column == 4 && rowNumber > 1) {
+              cell.DataType = CellValues.String; cell.CellFormula = new CellFormula(DurationFormula(rowNumber)); cell.CellValue = new CellValue("");
+            } else {
+              cell.DataType = CellValues.InlineString;
+              cell.InlineString = new InlineString(new Text(rowNumber <= values.Count && column < values[rowNumber - 1].Length ? values[rowNumber - 1][column] : ""));
+            }
+            row.Append(cell);
+          }
           data.Append(row);
         }
         workbook.Workbook.Sheets!.Append(new Sheet { Id = workbook.GetIdOfPart(part), SheetId = (uint)workbook.Workbook.Sheets.ChildElements.Count + 1,
@@ -76,24 +99,34 @@ public static class ScheduledTripExcelTemplate
         ["One date per sheet", "Each sheet name is its departure date in YYYY-MM-DD format. Use one sheet per date; duplicate a date sheet and rename it to add another date. Maximum 31 date sheets."],
         ["Dates and time", "Past Manila dates are rejected. On today's sheet, departure times must still be in the future. Choose an hourly departure from the dropdown, from 12:00 AM through 11:00 PM, in Manila time."],
         ["Origin and destination", "Choose two different terminals from the dropdown lists. These are active terminals from the selected partner's database records."],
-        ["Bus", "Choose a bus from the dropdown. The fleet number, plate number and record ID identify the bus. Available seats come from its current seat capacity."],
-        ["Travel time", "Enter a whole number of minutes (1 to 2880). Existing routes must use their current travel time listed below. New routes with the same terminals must use the same duration in every row."],
+        ["Bus", "Choose a bus by its fleet number and plate number. Available seats come from its current seat capacity."],
+        ["Dropdown choices", "Choose the full label from the dropdown. Matching names are distinguished by a number in brackets. Keep the hidden lookup sheet unchanged so the selected records can be identified during upload."],
+        ["Travel time", "Selecting origin and destination automatically fills the configured route's travel time. If it stays blank, configure that direction in Travel time setup and download a new template. Travel times are checked against the database during upload."],
         ["Fare", "Enter a fare from PHP 0.01 to PHP 1,000,000, with at most two decimal places."],
-        ["Limits", "Maximum 500 trips across all date sheets; maximum 5 MB; standard .xlsx only. Keep headers unchanged. No formulas."],
+        ["Limits", "Maximum 500 trips across all date sheets; maximum 5 MB; standard .xlsx only. Keep headers unchanged. Keep the supplied travel-time formulas or enter minutes manually. Formulas in other columns are not supported."],
         ["Validation", "Every row is validated before any trips are saved. Overlapping schedules for the same bus, including across sheets and existing trips, are rejected."],
         ["Refresh choices", "Download again to refresh active buses and terminals. Records, routes and dates are checked again against the database during upload."],
         ["Existing routes", "Origin -> Destination: travel time (minutes)"] ];
-      foreach (var route in options.Routes.Where(route => route.PartnerId == partnerId)) instructions.Add([
+      foreach (var route in routes) instructions.Add([
         $"{terminals.Single(terminal => terminal.Id == route.OriginTerminalId).Name} -> {terminals.Single(terminal => terminal.Id == route.DestinationTerminalId).Name}", route.DurationMinutes.ToString(CultureInfo.InvariantCulture)]);
       AddSheet("Instructions", [40, 130], instructions, instructions.Count);
-      var lists = new List<string[]> { new[] { "Terminals", "Buses", "Departure times" } };
-      for (var i = 0; i < Math.Max(24, Math.Max(terminals.Length, buses.Length)); i++) lists.Add([
-        i < terminals.Length ? TerminalLabel(terminals[i]) : "", i < buses.Length ? BusLabel(buses[i]) : "",
-        i < 24 ? new TimeOnly(i, 0).ToString("h:mm tt", CultureInfo.InvariantCulture) : ""]);
-      AddSheet("_Lists", [100, 85, 20], lists, lists.Count, hidden: true);
+      var lists = new List<string[]> { new[] { "Terminals", "Buses", "Departure times", "Terminal ID", "Bus ID", "Route", "Duration (minutes)" } };
+      for (var i = 0; i < Math.Max(routes.Length, Math.Max(24, Math.Max(terminals.Length, buses.Length))); i++) lists.Add([
+        i < terminals.Length ? terminalLabels[i] : "", i < buses.Length ? busLabels[i] : "",
+        i < 24 ? new TimeOnly(i, 0).ToString("h:mm tt", CultureInfo.InvariantCulture) : "",
+        i < terminals.Length ? terminals[i].Id.ToString("D") : "", i < buses.Length ? buses[i].Id.ToString("D") : "",
+        i < routes.Length ? labelsByTerminal[routes[i].OriginTerminalId] + "\t" + labelsByTerminal[routes[i].DestinationTerminalId] : "",
+        i < routes.Length ? routes[i].DurationMinutes.ToString(CultureInfo.InvariantCulture) : ""]);
+      var lookup = AddSheet("_Lists", [65, 55, 20, 40, 40, 100, 24], lists, lists.Count, hidden: true);
+      foreach (var row in lookup.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Skip(1).Take(routes.Length)) {
+        var cell = row.Elements<Cell>().ElementAt(6); var minutes = cell.InnerText;
+        cell.InlineString = null; cell.DataType = CellValues.Number; cell.CellValue = new CellValue(minutes);
+      }
       workbook.Workbook.DefinedNames = new DefinedNames(new DefinedName { Name = "TerminalChoices", Text = $"'_Lists'!$A$2:$A${terminals.Length + 1}" },
         new DefinedName { Name = "BusChoices", Text = $"'_Lists'!$B$2:$B${buses.Length + 1}" },
-        new DefinedName { Name = "DepartureTimes", Text = "'_Lists'!$C$2:$C$25" });
+        new DefinedName { Name = "DepartureTimes", Text = "'_Lists'!$C$2:$C$25" },
+        new DefinedName { Name = "RouteTravelTimes", Text = $"'_Lists'!$F$2:$G${Math.Max(2, routes.Length + 1)}" });
+      workbook.Workbook.CalculationProperties = new CalculationProperties { CalculationMode = CalculateModeValues.Auto, FullCalculationOnLoad = true, ForceFullCalculation = true };
       workbook.Workbook.Save();
     }
     return stream.ToArray();

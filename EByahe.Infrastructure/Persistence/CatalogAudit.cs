@@ -16,7 +16,7 @@ internal static class CatalogAudit
     terminal.Location.CodeDecodeMunicipality, terminal.Location.CodeDecodeBarangay, terminal.IsActive }, JsonOptions);
 
   public static string Snapshot(ScheduledTrip trip) => JsonSerializer.Serialize(new { trip.Id, trip.PartnerId, trip.BusId,
-    trip.BusRouteId, trip.DepartureAtUtc, trip.BaseFare, trip.AvailableSeats, trip.CodeDecodeScheduledTripStatus }, JsonOptions);
+    trip.BusRouteId, trip.DepartureAtUtc, trip.DurationMinutes, trip.BaseFare, trip.AvailableSeats, trip.CodeDecodeScheduledTripStatus }, JsonOptions);
 
   public static void Record(EByaheDbContext db, Bus bus, string actor, string action, string? previous = null, Guid? uploadId = null) =>
     db.BusLogs.Add(new BusLog { BusId = bus.Id, UploadId = uploadId, CreatedBy = actor, Action = action,

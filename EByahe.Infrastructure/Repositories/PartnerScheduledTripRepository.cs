@@ -29,9 +29,9 @@ public sealed partial class PartnerScheduledTripRepository(EByaheDbContext db, T
     var terminals = await db.BusTerminals.AsNoTracking().Where(terminal => ids.Contains(terminal.PartnerId) && terminal.IsActive && terminal.Location.IsActive)
       .OrderBy(terminal => terminal.Location.Name).ThenBy(terminal => terminal.Name).ThenBy(terminal => terminal.Id)
       .Select(terminal => new PartnerTripTerminal(terminal.Id, terminal.PartnerId, terminal.Name, terminal.Location.Name)).ToArrayAsync(cancellationToken);
-    var routes = await db.BusRoutes.AsNoTracking().Where(route => ids.Contains(route.PartnerId) && route.IsActive
+    var routes = await db.BusRoutes.AsNoTracking().Where(route => ids.Contains(route.PartnerId) && route.IsActive && route.DurationMinutes != null
       && route.OriginTerminal.IsActive && route.DestinationTerminal.IsActive && route.OriginTerminal.Location.IsActive && route.DestinationTerminal.Location.IsActive)
-      .OrderBy(route => route.Id).Select(route => new PartnerTripRoute(route.Id, route.PartnerId, route.OriginTerminalId, route.DestinationTerminalId, route.DurationMinutes))
+      .OrderBy(route => route.Id).Select(route => new PartnerTripRoute(route.Id, route.PartnerId, route.OriginTerminalId, route.DestinationTerminalId, route.DurationMinutes!.Value))
       .ToArrayAsync(cancellationToken);
     return new(workspaces, buses, terminals, routes);
   }
@@ -60,7 +60,7 @@ public sealed partial class PartnerScheduledTripRepository(EByaheDbContext db, T
     return new(trip.Id, trip.PartnerId, trip.Partner.DisplayName, trip.BusId, trip.Bus.FleetNumber, trip.Bus.PlateNumber,
       trip.Bus.BusClass.Decode, trip.Bus.SeatCapacity, trip.BusRoute.OriginTerminalId, trip.BusRoute.OriginTerminal.Name,
       trip.BusRoute.OriginTerminal.Location.Name, trip.BusRoute.DestinationTerminalId, trip.BusRoute.DestinationTerminal.Name,
-      trip.BusRoute.DestinationTerminal.Location.Name, trip.DepartureAtUtc, trip.BusRoute.DurationMinutes, trip.AvailableSeats,
+      trip.BusRoute.DestinationTerminal.Location.Name, trip.DepartureAtUtc, trip.DurationMinutes ?? trip.BusRoute.DurationMinutes ?? 0, trip.AvailableSeats,
       trip.BaseFare, trip.Status, restriction is null, restriction);
   }
 
@@ -105,11 +105,14 @@ public sealed partial class PartnerScheduledTripRepository(EByaheDbContext db, T
       throw new PartnerScheduledTripValidationException("Select two different active terminals belonging to this partner.");
     var route = await db.BusRoutes.SingleOrDefaultAsync(route => route.PartnerId == partner.Id
       && route.OriginTerminalId == origin.Id && route.DestinationTerminalId == destination.Id, cancellationToken);
-    if (route is not null && (!route.IsActive || route.DurationMinutes != command.DurationMinutes))
+    if (route is { DurationMinutes: null })
+      throw new PartnerScheduledTripValidationException("Configure this route in Travel time setup before creating a scheduled trip.");
+    if (route is not null && (!route.IsActive || (route.DurationMinutes != command.DurationMinutes
+      && !(existing?.BusRouteId == route.Id && existing.DurationMinutes == command.DurationMinutes))))
       throw new PartnerScheduledTripValidationException("This route is inactive or its travel time has changed. Reopen the form to load its current details.");
     var arrival = departure.AddMinutes(command.DurationMinutes);
     if (await db.ScheduledTrips.AnyAsync(trip => trip.Id != id && trip.BusId == bus.Id && trip.Status == "Scheduled"
-      && trip.DepartureAtUtc < arrival && trip.DepartureAtUtc.AddMinutes(trip.BusRoute.DurationMinutes) > departure, cancellationToken))
+      && trip.DepartureAtUtc < arrival && trip.DepartureAtUtc.AddMinutes(trip.DurationMinutes ?? trip.BusRoute.DurationMinutes ?? 0) > departure, cancellationToken))
       throw new PartnerScheduledTripConflictException();
     if (route is null)
     {
@@ -117,6 +120,7 @@ public sealed partial class PartnerScheduledTripRepository(EByaheDbContext db, T
       db.BusRoutes.Add(route);
     }
     var trip = existing ?? new ScheduledTrip { PartnerId = partner.Id };
+    trip.DurationMinutes = command.DurationMinutes;
     trip.BusId = bus.Id; trip.BusRoute = route; trip.BusRouteId = route.Id; trip.DepartureAtUtc = departure;
     trip.BaseFare = command.BaseFare; trip.AvailableSeats = bus.SeatCapacity;
     if (existing is null) db.ScheduledTrips.Add(trip);

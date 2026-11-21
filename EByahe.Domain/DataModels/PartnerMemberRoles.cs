@@ -5,7 +5,7 @@ public static class PartnerMemberRoles
   public static string[] Allowed(string category) => category switch
   {
     "bus-operator" => ["booking.read", "booking.confirm", "bus.read", "bus.write", "terminal.read", "terminal.write",
-      "scheduled-trip.read", "scheduled-trip.write", "member.create", "member.manage"],
+      "scheduled-trip.read", "scheduled-trip.write", "travel-time.read", "travel-time.write", "member.create", "member.manage"],
     "hotel" => ["booking.read", "booking.confirm", "hotel.read", "hotel.write", "member.create", "member.manage"],
     _ => []
   };

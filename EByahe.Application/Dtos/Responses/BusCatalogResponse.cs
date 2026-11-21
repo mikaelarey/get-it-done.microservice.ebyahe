@@ -11,7 +11,7 @@ public sealed record BusTripResponse(Guid Id, string Origin, string Destination,
   public static BusTripResponse From(ScheduledTrip trip)
   {
     var departure = trip.DepartureAtUtc.ToOffset(TimeSpan.FromHours(8));
-    var minutes = trip.BusRoute.DurationMinutes;
+    var minutes = trip.DurationMinutes ?? trip.BusRoute.DurationMinutes ?? throw new InvalidOperationException("A scheduled trip must have a travel time.");
     var duration = minutes % 60 == 0 ? $"{minutes / 60} hrs" : $"{minutes / 60} hrs {minutes % 60} min";
     return new(trip.Id, trip.BusRoute.OriginTerminal.Location.Name, trip.BusRoute.DestinationTerminal.Location.Name,
       trip.Partner.DisplayName, trip.BusRoute.OriginTerminal.Name, trip.BusRoute.DestinationTerminal.Name,

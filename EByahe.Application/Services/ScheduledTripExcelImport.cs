@@ -15,7 +15,7 @@ public static class ScheduledTripExcelImport
   public static DateOnly ManilaDate(DateTimeOffset now) => DateOnly.FromDateTime(now.ToOffset(TimeSpan.FromHours(8)).DateTime);
   public sealed record Parsed(IReadOnlyList<PartnerScheduledTripImportRow> Rows, IReadOnlyList<PartnerScheduledTripImportError> Errors);
 
-  public static async Task<Parsed> ReadAsync(IFormFile file, Guid partnerId, DateTimeOffset now, CancellationToken ct)
+  public static async Task<Parsed> ReadAsync(IFormFile file, Guid partnerId, DateTimeOffset now, CancellationToken ct, PartnerTripOptions? options = null)
   {
     static Parsed Invalid(string message, string sheet = "") => new([], [new(sheet, 0, "File", message)]);
     if (!string.Equals(Path.GetExtension(file.FileName), ".xlsx", StringComparison.OrdinalIgnoreCase)) return Invalid("Upload a standard Excel .xlsx workbook using the scheduled trip template.");
@@ -35,6 +35,42 @@ public static class ScheduledTripExcelImport
       if (workbook is null || dates.Length is < 1 or > 31) return Invalid("Use between 1 and 31 date sheets named YYYY-MM-DD.");
       if (sheets.Select(sheet => sheet.Name?.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count() != sheets.Length) return Invalid("Each date must have a single sheet.");
       var strings = workbook.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().Select(item => item.InnerText).ToArray() ?? [];
+      var terminalChoices = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+      var busChoices = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+      var lookupSheet = sheets.SingleOrDefault(sheet => sheet.Name?.Value == "_Lists");
+      if (lookupSheet?.Id?.Value is { } lookupId && workbook.GetPartById(lookupId) is WorksheetPart lookup)
+      {
+        string Text(Cell cell)
+        {
+          if (cell.CellFormula is not null) throw new FormatException("Lookup formulas are not supported.");
+          var value = cell.DataType?.Value == CellValues.InlineString ? cell.InlineString?.InnerText ?? "" : cell.CellValue?.Text ?? "";
+          if (cell.DataType?.Value == CellValues.SharedString)
+          {
+            if (!int.TryParse(value, out var index) || index < 0 || index >= strings.Length) throw new FormatException("Invalid lookup text.");
+            value = strings[index];
+          }
+          return value.Trim();
+        }
+        var lookupRows = lookup.Worksheet?.GetFirstChild<SheetData>()?.Elements<Row>().ToArray() ?? [];
+        // Earlier templates carry the ID in each label and have only three lookup columns.
+        var lookupHeaders = lookupRows.FirstOrDefault()?.Elements<Cell>().ToDictionary(cell => cell.CellReference?.Value ?? "", Text) ?? [];
+        if (lookupHeaders.GetValueOrDefault("D1") == "Terminal ID" && lookupHeaders.GetValueOrDefault("E1") == "Bus ID")
+        {
+          foreach (var row in lookupRows.Skip(1))
+          {
+            ct.ThrowIfCancellationRequested();
+            var cells = row.Elements<Cell>().ToDictionary(cell => Regex.Replace(cell.CellReference?.Value ?? "", "[0-9]", ""), Text);
+            void Map(string labelColumn, string idColumn, Dictionary<string, Guid> choices)
+            {
+              var label = cells.GetValueOrDefault(labelColumn, ""); var value = cells.GetValueOrDefault(idColumn, "");
+              if (label.Length == 0 && value.Length == 0) return;
+              if (label.Length == 0 || !Guid.TryParseExact(value, "D", out var id) || id == Guid.Empty || !choices.TryAdd(label, id))
+                throw new FormatException("Invalid or ambiguous record lookup.");
+            }
+            Map("A", "D", terminalChoices); Map("B", "E", busChoices);
+          }
+        }
+      }
       var rows = new List<PartnerScheduledTripImportRow>(); var errors = new List<PartnerScheduledTripImportError>(); var total = 0;
       var headers = ScheduledTripExcelTemplate.Headers;
       foreach (var sheet in dates)
@@ -45,6 +81,7 @@ public static class ScheduledTripExcelImport
         if (date < ManilaDate(now)) errors.Add(new(name, 0, "Date", "The sheet date is in the past in Manila time. Choose today or a future date."));
         if (sheet.Id?.Value is not { } id || workbook.GetPartById(id) is not WorksheetPart worksheet) return Invalid("The workbook contains an invalid worksheet.", name);
         var headerFound = false; var previous = 0; var scanned = 0;
+        var sharedDurations = new Dictionary<uint, (int First, int Last)>();
         using var reader = OpenXmlReader.Create(worksheet);
         while (reader.Read())
         {
@@ -56,6 +93,7 @@ public static class ScheduledTripExcelImport
           previous = number;
           var values = new string[headers.Length]; var numeric = new bool[headers.Length]; var seen = new HashSet<int>(); var position = 0;
           var issues = new List<PartnerScheduledTripImportError>();
+          var automaticDuration = false;
           void Error(int column, string message) => issues.Add(new(name, number, column >= 0 && column < headers.Length ? headers[column] : "Row", message));
           foreach (var cell in row.Elements<Cell>())
           {
@@ -66,8 +104,26 @@ public static class ScheduledTripExcelImport
               position = 0; foreach (var letter in match.Groups[1].Value) position = checked(position * 26 + letter - 'A' + 1); position--;
             }
             if (!seen.Add(position)) return Invalid("The worksheet contains duplicate cells.", name);
-            if (cell.CellFormula is not null) Error(position, "Enter a value instead of a formula.");
-            if (cell.DataType?.Value == CellValues.Boolean || cell.DataType?.Value == CellValues.Error) Error(position, "Excel errors and TRUE/FALSE values are not supported.");
+            var templateFormula = false;
+            if (cell.CellFormula is { } formula) {
+              if (position == 4) {
+                templateFormula = formula.Text == ScheduledTripExcelTemplate.DurationFormula(number)
+                  && (formula.FormulaType is null || formula.FormulaType.Value == CellFormulaValues.Normal || formula.FormulaType.Value == CellFormulaValues.Shared);
+                if (formula.FormulaType?.Value == CellFormulaValues.Shared && formula.SharedIndex?.Value is { } group) {
+                  if (templateFormula) {
+                    // Excel can retain the group's original range after earlier cells are saved
+                    // separately, e.g. the master is E7 but its range remains E2:E65.
+                    var range = Regex.Match(formula.Reference?.Value ?? "", "^E([1-9][0-9]*):E([1-9][0-9]*)$");
+                    templateFormula = range.Success && int.TryParse(range.Groups[1].Value, out var first)
+                      && int.TryParse(range.Groups[2].Value, out var last) && first >= 2 && first <= number && number <= last && last <= MaximumRows + 1;
+                    if (templateFormula) sharedDurations[group] = (int.Parse(range.Groups[1].Value, CultureInfo.InvariantCulture), int.Parse(range.Groups[2].Value, CultureInfo.InvariantCulture));
+                  } else if (formula.Text.Length == 0 && sharedDurations.TryGetValue(group, out var range)) templateFormula = number >= range.First && number <= range.Last;
+                }
+                automaticDuration = templateFormula;
+              }
+              if (!templateFormula) Error(position, "Enter a value instead of a formula. Only the template's travel-time formula is supported.");
+            }
+            if (!templateFormula && (cell.DataType?.Value == CellValues.Boolean || cell.DataType?.Value == CellValues.Error)) Error(position, "Excel errors and TRUE/FALSE values are not supported.");
             var value = cell.DataType?.Value == CellValues.InlineString ? cell.InlineString?.InnerText ?? "" : cell.CellValue?.Text ?? "";
             if (cell.DataType?.Value == CellValues.SharedString)
             {
@@ -75,7 +131,7 @@ public static class ScheduledTripExcelImport
               value = strings[index];
             }
             if (value.Any(char.IsControl)) Error(position, "Values must not contain control characters or line breaks.");
-            if (position >= 0 && position < headers.Length) { values[position] = value.Trim(); numeric[position] = cell.DataType is null || cell.DataType.Value == CellValues.Number; }
+            if (position >= 0 && position < headers.Length) { values[position] = position == 4 && automaticDuration ? "" : value.Trim(); numeric[position] = cell.DataType is null || cell.DataType.Value == CellValues.Number; }
             else if (!string.IsNullOrWhiteSpace(value)) Error(position, "Use only the six template columns.");
             position++;
           }
@@ -89,11 +145,15 @@ public static class ScheduledTripExcelImport
           if (++total > MaximumRows) return Invalid("Upload at most 500 trips across all date sheets.");
           Guid Choice(int column)
           {
-            var value = values[column] ?? ""; var separator = value.LastIndexOf('|');
+            var value = values[column] ?? "";
+            if ((column == 2 ? busChoices : terminalChoices).TryGetValue(value, out var mapped)) return mapped;
+            var separator = value.LastIndexOf('|');
             if (Guid.TryParseExact((separator >= 0 ? value[(separator + 1)..] : value).Trim(), "D", out var choice) && choice != Guid.Empty) return choice;
             Error(column, "Select a record from the template dropdown. Download a new template to refresh the choices."); return Guid.Empty;
           }
           var origin = Choice(0); var destination = Choice(1); var bus = Choice(2);
+          if (automaticDuration) values[4] = options?.Routes.SingleOrDefault(route => route.PartnerId == partnerId && route.OriginTerminalId == origin && route.DestinationTerminalId == destination)
+            ?.DurationMinutes.ToString(CultureInfo.InvariantCulture) ?? "";
           if (origin != Guid.Empty && origin == destination) Error(1, "Origin and destination must be different terminals.");
           TimeOnly time = default; var timeValid = false;
           if (numeric[3])
@@ -106,7 +166,7 @@ public static class ScheduledTripExcelImport
           var departure = new DateTimeOffset(date.ToDateTime(time), TimeSpan.FromHours(8)).ToUniversalTime();
           if (timeValid && departure <= now) Error(3, "Departure must be in the future in Manila time.");
           var durationValid = decimal.TryParse(values[4], NumberStyles.Float, CultureInfo.InvariantCulture, out var duration) && duration is >= 1 and <= 2880 && decimal.Truncate(duration) == duration;
-          if (!durationValid) Error(4, "Travel time must be a whole number of minutes from 1 to 2880.");
+          if (!durationValid) Error(4, automaticDuration ? "No active route travel time is available. Configure this direction in Travel time setup, then download a new template." : "Travel time must be a whole number of minutes from 1 to 2880.");
           var fareValid = decimal.TryParse(values[5], NumberStyles.Float, CultureInfo.InvariantCulture, out var fare) && fare is >= 0.01m and <= 1000000m && decimal.Round(fare, 2) == fare;
           if (!fareValid) Error(5, "Fare must be from PHP 0.01 to PHP 1,000,000 with at most two decimal places.");
           if (durationValid && departure > DateTimeOffset.MaxValue.AddMinutes(-(int)duration)) Error(4, "Arrival is outside the supported date range.");

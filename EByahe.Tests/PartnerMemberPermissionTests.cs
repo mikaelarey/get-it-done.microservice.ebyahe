@@ -15,7 +15,7 @@ public sealed partial class SqlServerDatabaseTests
     client.DefaultRequestHeaders.Authorization = new("Bearer", factory.Token(resourceAccess: BusRoles("member.create")));
     var workspace = Assert.Single((await client.GetFromJsonAsync<PartnerMemberWorkspace[]>("/api/partner/users/workspaces"))!);
     string[] expected = ["booking.confirm", "booking.read", "bus.read", "bus.write", "member.create", "member.manage",
-      "scheduled-trip.read", "scheduled-trip.write", "terminal.read", "terminal.write"];
+      "scheduled-trip.read", "scheduled-trip.write", "terminal.read", "terminal.write", "travel-time.read", "travel-time.write"];
     Assert.Equal(expected, workspace.AvailableRoles!.Order());
     var command = new { requestId = Guid.NewGuid(), partnerId = partner.Id, firstName = "Permission", lastName = "Member", email = "permissions@example.com", roles = expected };
     foreach (var invalid in new[] { Array.Empty<string>(), new[] { "hotel.read" }, new[] { "hotel.write" }, new[] { "partner.read" }, new[] { "partner.review" }, new[] { "admin" }, new[] { "terminal.write" }, new[] { "terminal.read", "terminal.read" } })

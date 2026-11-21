@@ -18,7 +18,7 @@ public sealed partial class SqlServerDatabaseTests
     db.ScheduledTrips.Add(trip); await db.SaveChangesAsync(); return trip;
   }
   private static UpdatePartnerScheduledTrip TripUpdate(ScheduledTrip trip) => new(trip.BusId,
-    trip.BusRoute.OriginTerminalId, trip.BusRoute.DestinationTerminalId, trip.DepartureAtUtc.AddDays(1), trip.BusRoute.DurationMinutes, 620.25m);
+    trip.BusRoute.OriginTerminalId, trip.BusRoute.DestinationTerminalId, trip.DepartureAtUtc.AddDays(1), trip.BusRoute.DurationMinutes!.Value, 620.25m);
 
   [SqlServerFact]
   public async Task ScheduledTripUpdatesReuseRoutesExcludeThemselvesFromOverlapChecksAndSaveAuditAndNotificationsAtomically()

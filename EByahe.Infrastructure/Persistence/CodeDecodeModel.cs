@@ -347,6 +347,7 @@ internal static class CodeDecodeModel
         new CodeDecodePartnerMemberRequestStatus { Id = Guid.Parse("fdd38f03-f8ad-4429-8591-5a22a0db01f0"), Code = 3, Decode = "Cancelled", CreatedBy = "System", DateTimeCreated = DateTimeOffset.Parse("2026-11-17T00:00:00+00:00") });
     }
     builder.Entity<BusBookingStatusLog>().Ignore(x => x.Status);
+    builder.Entity<BusBookingStatusLog>().Property(x => x.ChangedBy).HasMaxLength(255).UseCollation("Latin1_General_100_BIN2");
     builder.Entity<BusBookingStatusLog>().HasOne<BookingStatus>().WithMany().HasForeignKey(x => x.CodeDecodeBookingStatus).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);
     builder.Entity<BusBookingStatusLog>().Ignore(x => x.PreviousStatus);
     builder.Entity<BusBookingStatusLog>().HasOne<BookingStatus>().WithMany().HasForeignKey(x => x.CodeDecodePreviousBookingStatus).HasPrincipalKey(x => x.Code).OnDelete(DeleteBehavior.Restrict);

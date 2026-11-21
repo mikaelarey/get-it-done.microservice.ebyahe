@@ -21,6 +21,9 @@ public static class PartnerPortalAuthorization
   public static bool CanReadMembers(ClaimsPrincipal user) => CanCreateMembers(user) || (HasAccess(user)
     && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "member.manage"));
   public const string ReadBookingsPolicy = "ReadPartnerBookings";
+  public const string ConfirmBookingsPolicy = "ConfirmPartnerBookings";
+  public static bool CanConfirmBookings(ClaimsPrincipal user) => CanReadBookings(user)
+    && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "booking.confirm");
   public static bool CanReadBookings(ClaimsPrincipal user) => HasAccess(user)
     && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "booking.read");
   public const string ReadTerminalsPolicy = "ReadPartnerTerminals";
@@ -35,6 +38,12 @@ public static class PartnerPortalAuthorization
   public const string WriteScheduledTripsPolicy = "WritePartnerScheduledTrips";
   public static bool CanWriteScheduledTrips(ClaimsPrincipal user) => CanReadScheduledTrips(user)
     && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "scheduled-trip.write");
+  public const string ReadTravelTimesPolicy = "ReadPartnerTravelTimes";
+  public const string WriteTravelTimesPolicy = "WritePartnerTravelTimes";
+  public static bool CanReadTravelTimes(ClaimsPrincipal user) => HasAccess(user)
+    && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "travel-time.read");
+  public static bool CanWriteTravelTimes(ClaimsPrincipal user) => CanReadTravelTimes(user)
+    && PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-ebyahe-api", "travel-time.write");
   public static bool HasAccess(ClaimsPrincipal user) =>
     PartnerApplicationReviewAuthorization.HasClientRole(user, "get-it-done-web", "partner");
 }

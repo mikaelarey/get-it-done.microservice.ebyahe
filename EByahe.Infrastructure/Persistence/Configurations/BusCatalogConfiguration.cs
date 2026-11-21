@@ -71,7 +71,7 @@ public sealed class BusRouteConfiguration : IEntityTypeConfiguration<BusRoute>
   {
     b.ToTable("BusRoutes", t => {
       t.HasCheckConstraint("CK_BusRoutes_DifferentTerminals", "[OriginTerminalId] <> [DestinationTerminalId]");
-      t.HasCheckConstraint("CK_BusRoutes_Duration", "[DurationMinutes] > 0");
+      t.HasCheckConstraint("CK_BusRoutes_Duration", "[DurationMinutes] IS NULL OR [DurationMinutes] BETWEEN 1 AND 2880");
     });
     b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever(); b.HasAlternateKey(x => new { x.Id, x.PartnerId });
     b.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
@@ -88,6 +88,7 @@ public sealed class ScheduledTripConfiguration : IEntityTypeConfiguration<Schedu
   {
     b.ToTable("ScheduledTrips", t => {
       t.HasCheckConstraint("CK_ScheduledTrips_Fare", "[BaseFare] > 0");
+      t.HasCheckConstraint("CK_ScheduledTrips_Duration", "[DurationMinutes] IS NULL OR [DurationMinutes] BETWEEN 1 AND 2880");
       t.HasCheckConstraint("CK_ScheduledTrips_AvailableSeats", "[AvailableSeats] IS NULL OR [AvailableSeats] BETWEEN 0 AND 100");
       t.HasCheckConstraint("CK_ScheduledTrips_Status", "[CodeDecodeScheduledTripStatus] IN (1, 2)");
     });

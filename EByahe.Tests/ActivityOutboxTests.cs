@@ -35,7 +35,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     var receipt = (await response.Content.ReadFromJsonAsync<BusBookingResponse>())!;
     using var replay = await client.PostAsJsonAsync("/api/bus-bookings", request); Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
-    var events = await db.OutboxMessages.Where(message => message.EventType == "booking.created").ToArrayAsync();
+    var events = await db.OutboxMessages.Where(message => message.EventType == "booking.created" && message.TopicSetup!.Decode == "get-it-done.notifications.v1").ToArrayAsync();
     Assert.Equal(2, events.Length); Assert.Contains(events, message => message.Id == receipt.Id);
     var targets = new List<string>();
     foreach (var message in events)
@@ -94,7 +94,7 @@ public sealed partial class SqlServerDatabaseTests
     using var replay=await client.PostAsJsonAsync("/api/bus-bookings",request); Assert.Equal(HttpStatusCode.OK,replay.StatusCode);
     using var form=ApplicationForm(); using var submitted=await client.PostAsync("/api/partner-applications",form); Assert.Equal(HttpStatusCode.Created,submitted.StatusCode);
     var application=(await submitted.Content.ReadFromJsonAsync<PartnerApplicationResponse>())!;
-    await using var db=CreateDatabase(); var events=await db.OutboxMessages.ToArrayAsync(); Assert.Equal(2,events.Length);
+    await using var db=CreateDatabase(); var events=await db.OutboxMessages.Where(message=>message.TopicSetup!.Decode=="get-it-done.notifications.v1").ToArrayAsync(); Assert.Equal(2,events.Length);
     var booking=Assert.Single(events,x=>x.EventType=="booking.created"); Assert.Equal(receipt.Id,booking.Id);
     var partner=Assert.Single(events,x=>x.EventType=="partner-application.submitted"); Assert.Equal(application.Id,partner.Id);
     Assert.All(events,message=>{
@@ -111,7 +111,7 @@ public sealed partial class SqlServerDatabaseTests
     using var p=JsonDocument.Parse(partner.Payload); Assert.Equal("/partner-application-details/"+application.Id,p.RootElement.GetProperty("link").GetString());
     Assert.Equal(PartnerApiFactory.Subject,p.RootElement.GetProperty("details").GetProperty("applicationCreatorUserId").GetString());
     Assert.Equal((await db.PartnerApplications.SingleAsync(item=>item.Id==application.Id)).BusinessName,p.RootElement.GetProperty("details").GetProperty("businessName").GetString());
-    Assert.Equal(2,await db.Outgoing.CountAsync());
+    Assert.Equal(2,await db.Outgoing.CountAsync(message=>message.TopicSetup!.Decode=="get-it-done.notifications.v1"));
   }
 
   [SqlServerFact]

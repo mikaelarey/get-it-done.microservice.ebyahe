@@ -1,5 +1,6 @@
 using System.Text.Json;
 using EByahe.Domain.DataModels;
+using EByahe.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EByahe.Infrastructure.Repositories;
@@ -19,12 +20,13 @@ public sealed partial class PartnerPortalRepository
     var reason = method != "cash" ? "This booking uses an online payment method."
       : booking.PaymentStatus == "Payment Success" ? "Payment has already been received."
       : booking.Status != "Submitted" || booking.ReservedSeats != 0 ? "This booking cannot accept a cash payment."
+      : now >= CashBookingPolicy.DueAt(booking) ? "The 24-hour cash payment deadline has passed. This booking will automatically cancel."
       : trip.Status != "Scheduled" || trip.DepartureAtUtc <= now ? "This departure is no longer available."
       : !trip.Bus.IsActive || !trip.BusRoute.IsActive || !trip.BusRoute.OriginTerminal.IsActive || !trip.BusRoute.DestinationTerminal.IsActive
         ? "This bus or route is no longer active."
       : trip.AvailableSeats is not { } available || Math.Min(available, trip.Bus.SeatCapacity) < passengers
         ? "There are not enough seats available for this booking." : null;
     return new(booking.Id, booking.Reference, booking.CreatedBy, trip.PartnerId, booking.Total, method, booking.Status,
-      booking.PaymentStatus, passengers, reason is null, reason);
+      booking.PaymentStatus, passengers, reason is null, reason, method == "cash" ? CashBookingPolicy.DueAt(booking) : null);
   }
 }

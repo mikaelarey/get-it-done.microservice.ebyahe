@@ -4,4 +4,4 @@ namespace EByahe.Domain.DataModels;
 public sealed record PaymentCompletedEvent(Guid EventId, string EventType, int SchemaVersion, DateTimeOffset OccurredAtUtc,
   Guid PaymentId, Guid BookingId, string BookingReference, string OwnerId, long AmountCentavos, string Currency,
   string Provider, string ProviderSessionId, string ProviderPaymentId, string? PaymentType = null, string PaymentStatus = "Payment Success",
-  Guid? PartnerId = null, string? AcceptedBy = null);
+  Guid? PartnerId = null, string? AcceptedBy = null, string? CancellationReason = null);

@@ -52,6 +52,10 @@ public sealed class BusBookingsController(IBusBookingService bookings) : Control
       Response.Headers.CacheControl = "private, no-store";
       return result.Created ? CreatedAtAction(nameof(Get), new { id = result.Booking.Id }, result.Booking) : Ok(result.Booking);
     }
+    catch (CashBookingUnavailableException error)
+    {
+      return Conflict(new ProblemDetails { Status = 409, Title = error.Message, Extensions = { ["code"] = "cash_booking_unavailable" } });
+    }
     catch (SeatReservationException error)
     {
       return Conflict(new ProblemDetails { Status = StatusCodes.Status409Conflict, Title = error.Message,

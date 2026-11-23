@@ -32,8 +32,8 @@ public sealed partial class PartnerPortalRepository(EByaheDbContext database) : 
   public Task<PartnerRecordsPage<BusBooking>> BookingsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken, string? search = null) =>
     Page(Bookings(userId, search).OrderByDescending(row => row.CreatedAtUtc).ThenBy(row => row.Id), page, pageSize, cancellationToken);
 
-  public Task<BusBooking?> BookingDetailsAsync(string userId, Guid bookingId, CancellationToken cancellationToken) =>
-    Bookings(userId).SingleOrDefaultAsync(row => row.Id == bookingId, cancellationToken);
+  public async Task<BusBooking?> BookingDetailsAsync(string userId, Guid bookingId, CancellationToken cancellationToken) =>
+    await BookingCancellationRemarks.LoadAsync(database, await Bookings(userId).SingleOrDefaultAsync(row => row.Id == bookingId, cancellationToken), cancellationToken);
 
   public Task<PartnerRecordsPage<PartnerPortalTerminal>> TerminalsAsync(string userId, int page, int pageSize, CancellationToken cancellationToken, string? search = null)
   {

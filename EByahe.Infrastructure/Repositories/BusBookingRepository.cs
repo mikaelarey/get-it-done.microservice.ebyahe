@@ -17,11 +17,11 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
       .Where(x => x.BookingId == id && database.BusBookings.Any(b => b.Id == id && b.CreatedBy == userId))
       .OrderBy(x => x.ChangedAtUtc).ThenBy(x => x.Id).ToArrayAsync(cancellationToken);
 
-  public Task<BusBooking?> GetForUserAsync(Guid id, string userId, CancellationToken cancellationToken) =>
-    database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.Id == id && row.CreatedBy == userId, cancellationToken);
+  public async Task<BusBooking?> GetForUserAsync(Guid id, string userId, CancellationToken cancellationToken) =>
+    await BookingCancellationRemarks.LoadAsync(database, await database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.Id == id && row.CreatedBy == userId, cancellationToken), cancellationToken);
 
-  public Task<BusBooking?> GetByReferenceForUserAsync(string reference, string userId, CancellationToken cancellationToken) =>
-    database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.Reference == reference && row.CreatedBy == userId, cancellationToken);
+  public async Task<BusBooking?> GetByReferenceForUserAsync(string reference, string userId, CancellationToken cancellationToken) =>
+    await BookingCancellationRemarks.LoadAsync(database, await database.BusBookings.AsNoTracking().SingleOrDefaultAsync(row => row.Reference == reference && row.CreatedBy == userId, cancellationToken), cancellationToken);
 
   public async Task<(IReadOnlyList<BusBooking> Items, int TotalCount)> ListForUserAsync(string userId, int page, int pageSize, CancellationToken cancellationToken)
   {
@@ -59,18 +59,25 @@ public sealed class BusBookingRepository(EByaheDbContext database, TimeProvider 
       .SingleOrDefaultAsync(cancellationToken);
     if (trip is null || !MatchesPublishedTrip(trip, expectedTrip))
       throw new SeatReservationException("This departure has changed or is no longer available. Please search again.");
+    if (booking.PaymentType == "Cash" && trip.DepartureAtUtc < clock.GetUtcNow().Add(CashBookingPolicy.PaymentWindow))
+      throw new CashBookingUnavailableException();
     database.BusBookings.Add(booking);
     database.BusBookingStatusLogs.Add(new BusBookingStatusLog
     {
       BookingId = booking.Id, Status = booking.Status, PaymentStatus = booking.PaymentStatus,
       PaymentType = booking.PaymentType, ChangedAtUtc = booking.CreatedAtUtc,
-      Remarks = "Booking submitted without reserving seats."
+      Remarks = booking.PaymentType == "Cash"
+        ? "Cash booking submitted. Payment must be received within 24 hours; otherwise the booking will automatically cancel. No seats reserved."
+        : "Booking submitted without reserving seats."
     });
     IReadOnlyList<OutboxMessage> events = [];
     try
     {
       events = await PartnerBookingActivityOutbox.QueueAsync(database, booking, trip.PartnerId,
         kafka?.Value.NotificationTopic ?? ActivityOutbox.DefaultTopic, cancellationToken);
+      if (booking.PaymentType == "Cash")
+        events = events.Append(CashBookingDeadlineOutbox.Queue(database, booking, trip.PartnerId,
+          kafka?.Value.CashBookingsTopic ?? CashBookingDeadlineOutbox.DefaultTopic)).ToArray();
       await database.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
       if (changes is not null) await changes.PublishAsync(["bookings"], booking.CreatedBy, trip.PartnerId, cancellationToken);

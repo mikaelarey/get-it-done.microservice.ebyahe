@@ -29,7 +29,7 @@ public sealed class BusBookingService(IBusBookingRepository bookings, IBusCatalo
     var existing = await bookings.GetForRequestAsync(request.RequestId, userId, cancellationToken);
     if (existing is not null) return (Existing(existing, hash), false);
     try { return await CreateAsync(request, userId, snapshot, hash, cancellationToken); }
-    catch (Exception error) when (error is SeatReservationException or BookingTripValidationException)
+    catch (Exception error) when (error is SeatReservationException or BookingTripValidationException or CashBookingUnavailableException)
     {
       // An identical concurrent request may have exhausted the trip after the first lookup.
       existing = await bookings.GetForRequestAsync(request.RequestId, userId, cancellationToken);

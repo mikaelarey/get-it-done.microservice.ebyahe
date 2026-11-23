@@ -8,6 +8,7 @@ public sealed class KafkaOptions : IEventSettings
 {
   public const string SectionName = "Kafka";
   public bool Enabled { get; set; }
+  public string CashBookingsTopic { get; set; } = "get-it-done.ebyahe.cash-bookings.v1";
   public string PartnerMembersTopic { get; set; } = "get-it-done.ebyahe.partner-members.v1";
   public string PaymentCompletedTopic { get; set; } = "get-it-done.payment.completed.v1";
   public string NotificationTopic { get; set; } = ActivityOutbox.DefaultTopic;
@@ -33,7 +34,10 @@ public sealed class KafkaOptions : IEventSettings
   public string? SaslUsername { get; set; }
   public string? SaslPassword { get; set; }
 
-  public bool IsValid() => !string.IsNullOrWhiteSpace(NotificationTopic) && NotificationTopic.Length <= 249
+  public bool IsValid() => CashBookingsTopic.Length is > 0 and <= 249 && CashBookingsTopic is not ("." or "..")
+    && Regex.IsMatch(CashBookingsTopic, @"\A[a-zA-Z0-9._-]+\z")
+    && new[] { Topic, PaymentCompletedTopic, PartnerMembersTopic, PartnerApprovalTopic, NotificationTopic }.All(topic => topic != CashBookingsTopic)
+    && !string.IsNullOrWhiteSpace(NotificationTopic) && NotificationTopic.Length <= 249
     && !string.IsNullOrWhiteSpace(PaymentCompletedTopic) && PaymentCompletedTopic.Length <= 249
     && PaymentCompletedTopic is not ("." or "..") && Regex.IsMatch(PaymentCompletedTopic, @"\A[a-zA-Z0-9._-]+\z")
     && PaymentCompletedTopic != Topic && PaymentCompletedTopic != PartnerMembersTopic

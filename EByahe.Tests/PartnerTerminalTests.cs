@@ -57,7 +57,7 @@ public sealed partial class SqlServerDatabaseTests
     var terminal = (await created.Content.ReadFromJsonAsync<PartnerPortalTerminal>())!;
     Assert.NotEqual(Guid.Empty, terminal.Id); Assert.Equal("New terminal", terminal.Name);
     Assert.Equal("First street\nCity centre, Adams (Pob.), Adams, Ilocos Norte, Region I", terminal.Address);
-    Assert.Equal("Adams (Ilocos Norte)", terminal.Location); Assert.True(terminal.IsActive);
+    Assert.Equal("Ilocos Norte - Adams", terminal.Location); Assert.True(terminal.IsActive);
     var saved = await db.BusTerminals.Include(row => row.Location).SingleAsync(row => row.Id == terminal.Id);
     Assert.Equal(1, saved.Location.CodeDecodeBarangay); Assert.Equal(1, saved.Location.CodeDecodeMunicipality);
     Assert.Equal(2, saved.Location.CodeDecodeProvince); Assert.Equal(3, saved.Location.CodeDecodeRegion); Assert.Equal(partner.Id, saved.PartnerId);

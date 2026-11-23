@@ -14,6 +14,7 @@ public static class DependencyInjection
     services.AddHostedService<IncomingEventWorker>();
     services.AddScoped<OutgoingEventDispatcher>();
     services.AddHostedService<OutgoingEventWorker>();
+    services.AddHostedService<CashBookingRegistrationWorker>();
     services.AddScoped<IPartnerApplicationService, PartnerApplicationService>();
     services.AddScoped<IBusBookingService, BusBookingService>();
     services.AddExceptionHandler<ApiExceptionHandler>();

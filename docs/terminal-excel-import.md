@@ -23,7 +23,7 @@ Keep the seven headers on row 1 unchanged:
 | City / Municipality | Select within the province |
 | Barangay | Select within the city/municipality |
 | Street / Building address | 1–500 characters; street, building or nearest landmark |
-| Location | Automatic `City (Province)` preview; not imported |
+| Location | Automatic `Province - City / Municipality` preview; not imported |
 
 Choose the four address dropdowns from left to right. Options include a numeric
 code and decoded name, such as `3 - Region I`. Keep the complete option. When a
@@ -71,8 +71,10 @@ The `LinkLocationsToCodeDecodeGeography` migration defines the four code referen
 on `Locations`. Composite foreign keys enforce the complete parent chain, with an
 all-or-none geography check and a unique index for linked barangays. Existing
 locations retain null geography codes until explicitly linked. The displayed
-location name is `City / Municipality (Province)`, while the terminal Address holds
+location name is `Province - City / Municipality`, while the terminal Address holds
 the street/building description. Terminal responses in the partner portal and
 admin directory append any available barangay, city/municipality, province and
 region to that description. Legacy records without geography retain their street
-address, and the Location column continues to display `City (Province)`.
+address and existing location label.
+
+Location labels are saved in province-first order, for example `Pangasinan - Alcala`, for manual creation, updates, and Excel imports. The `FormatLocationNamesProvinceFirst` migration updates existing geography-linked locations, including inactive locations, without changing their IDs or terminal relationships. Unlinked legacy locations keep their existing labels.

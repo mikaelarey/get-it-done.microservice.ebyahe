@@ -42,7 +42,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.All(logs, log => { Assert.Equal("Imported", log.Action); Assert.Null(log.PreviousValue); Assert.Equal(upload.Id, log.UploadId); Assert.Equal(PartnerApiFactory.Subject, log.CreatedBy); });
     Assert.Empty(await db.OutboxMessages.Where(row => row.EventType == "terminal.created").ToArrayAsync());
     var location = await db.Locations.SingleAsync(row => row.CodeDecodeBarangay == 1);
-    Assert.Equal("Adams (Ilocos Norte)", location.Name); Assert.Equal(3, location.CodeDecodeRegion);
+    Assert.Equal("Ilocos Norte - Adams", location.Name); Assert.Equal(3, location.CodeDecodeRegion);
     using var duplicate = TerminalUpload(partner.Id, TerminalExcelImportTests.Valid("Not saved"), TerminalExcelImportTests.Valid());
     using var rejected = await client.PostAsync(api, duplicate); Assert.Equal(HttpStatusCode.Conflict, rejected.StatusCode);
     var duplicateErrors = (await rejected.Content.ReadFromJsonAsync<PartnerTerminalImportResult>())!;

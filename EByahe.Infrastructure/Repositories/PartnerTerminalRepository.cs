@@ -125,7 +125,7 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
     var location = await db.Locations.FromSqlInterpolated($"SELECT * FROM [Locations] WITH (UPDLOCK, HOLDLOCK) WHERE [CodeDecodeBarangay] = {barangayCode}")
       .SingleOrDefaultAsync(cancellationToken);
     if (location is not null && !location.IsActive) throw new PartnerTerminalLocationUnavailableException();
-    var name = $"{barangay.Municipality.Decode} ({barangay.Municipality.Province.Decode})";
+    var name = $"{barangay.Municipality.Province.Decode} - {barangay.Municipality.Decode}";
     if (location is null)
     {
       location = new Location { Code = $"PH-BRG-{barangay.Code}", Name = name, CodeDecodeRegion = region,
@@ -192,7 +192,7 @@ public sealed class PartnerTerminalRepository(EByaheDbContext db, IOptions<Kafka
     foreach (var row in rows)
     {
       var command = row.Terminal; var barangay = geography[command.CodeDecodeBarangay];
-      var name = $"{barangay.Municipality.Decode} ({barangay.Municipality.Province.Decode})";
+      var name = $"{barangay.Municipality.Province.Decode} - {barangay.Municipality.Decode}";
       if (!locations.TryGetValue(barangay.Code, out var location))
       {
         location = new Location { Code = $"PH-BRG-{barangay.Code}", Name = name,

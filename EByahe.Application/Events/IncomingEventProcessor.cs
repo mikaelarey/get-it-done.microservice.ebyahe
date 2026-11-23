@@ -84,12 +84,13 @@ public sealed class IncomingEventProcessor(IIncomingRepository incoming, IEventS
 
   private static bool ValidPaymentProvider(PaymentCompletedEvent payment) => payment.Provider switch
   {
-    "cash" => payment.EventType == "payment.completed" && payment.PaymentType == "Cash"
+    "cash" => payment.PaymentType == "Cash"
       && payment.PartnerId is { } partner && partner != Guid.Empty
-      && !string.IsNullOrWhiteSpace(payment.AcceptedBy) && payment.AcceptedBy.Length <= 255
-      && payment.AcceptedBy == payment.AcceptedBy.Trim()
+      && (payment.EventType == "payment.completed" && payment.CancellationReason is null
+        && !string.IsNullOrWhiteSpace(payment.AcceptedBy) && payment.AcceptedBy.Length <= 255 && payment.AcceptedBy == payment.AcceptedBy.Trim()
+        || payment.EventType == "payment.cancelled" && payment.CancellationReason == "cash_payment_expired" && payment.AcceptedBy is null)
       && payment.ProviderSessionId == "" && payment.ProviderPaymentId == "",
-    "paymongo" => payment.PaymentType is null or "GCash" or "Maya" or "Credit/Debit Card"
+    "paymongo" => payment.CancellationReason is null && payment.PaymentType is null or "GCash" or "Maya" or "Credit/Debit Card"
       && payment.PartnerId is null && payment.AcceptedBy is null
       && (payment.EventType == "payment.cancelled" || payment.ProviderSessionId is { Length: > 3 and <= 100 }
         && payment.ProviderSessionId.StartsWith("cs_", StringComparison.Ordinal) && payment.ProviderPaymentId is { Length: > 4 and <= 100 }

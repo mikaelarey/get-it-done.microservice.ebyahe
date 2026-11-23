@@ -26,4 +26,6 @@ public sealed class BusBooking
   public string RequestHash { get; set; } = string.Empty;
   // Validated intake snapshot. Contains safe payment metadata, never card numbers or CVVs.
   public string DetailsJson { get; set; } = string.Empty;
+  [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+  public string? CancellationRemarks { get; set; }
 }

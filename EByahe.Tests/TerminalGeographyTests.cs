@@ -12,6 +12,38 @@ namespace EByahe.Tests;
 public sealed partial class SqlServerDatabaseTests
 {
   [SqlServerFact]
+  public async Task LocationNameMigrationBackfillsActiveAndInactiveRowsAndPreservesTerminalLinks()
+  {
+    var partner = await SeedMemberPartner();
+    await using var db = CreateDatabase();
+    var migrator = db.GetService<IMigrator>();
+    await migrator.MigrateAsync("20261121195058_AddCodeDecodeRoomTypes");
+    var active = new Location { Code = "PH-BRG-1", Name = "Adams (Ilocos Norte)",
+      CodeDecodeRegion = 3, CodeDecodeProvince = 2, CodeDecodeMunicipality = 1, CodeDecodeBarangay = 1 };
+    var inactive = new Location { Code = "PH-BRG-2", Name = "Bacarra (Ilocos Norte)", IsActive = false,
+      CodeDecodeRegion = 3, CodeDecodeProvince = 2, CodeDecodeMunicipality = 2, CodeDecodeBarangay = 2 };
+    var legacy = new Location { Code = "LEGACY-NAME", Name = "Legacy location" };
+    db.Locations.AddRange(active, inactive, legacy);
+    var terminal = new BusTerminal { PartnerId = partner.Id, Location = active, Name = "Existing terminal", Address = "Existing street" };
+    db.BusTerminals.Add(terminal); await db.SaveChangesAsync();
+
+    await migrator.MigrateAsync();
+    var names = await db.Locations.AsNoTracking().ToDictionaryAsync(row => row.Id);
+    Assert.Equal("Ilocos Norte - Adams", names[active.Id].Name);
+    Assert.Equal("Ilocos Norte - Bacarra", names[inactive.Id].Name); Assert.False(names[inactive.Id].IsActive);
+    Assert.Equal("Legacy location", names[legacy.Id].Name); Assert.Null(names[legacy.Id].CodeDecodeBarangay);
+    var preserved = await db.BusTerminals.AsNoTracking().SingleAsync(row => row.Id == terminal.Id);
+    Assert.Equal(active.Id, preserved.LocationId); Assert.Equal("Existing terminal", preserved.Name);
+    Assert.Equal("Existing street", preserved.Address); Assert.Equal(3, names.Count);
+
+    await migrator.MigrateAsync("20261121195058_AddCodeDecodeRoomTypes");
+    Assert.Equal("Adams (Ilocos Norte)", (await db.Locations.AsNoTracking().SingleAsync(row => row.Id == active.Id)).Name);
+    await migrator.MigrateAsync();
+    Assert.Equal("Ilocos Norte - Adams", (await db.Locations.AsNoTracking().SingleAsync(row => row.Id == active.Id)).Name);
+    Assert.False(db.Database.HasPendingModelChanges());
+  }
+
+  [SqlServerFact]
   public async Task TerminalAddressesIncludeGeographyForManualAndImportedRowsAndPreserveLegacyAddresses()
   {
     var partner = await SeedMemberPartner();
@@ -33,7 +65,7 @@ public sealed partial class SqlServerDatabaseTests
     Assert.Equal(3, portal.TotalCount);
     Assert.Equal("Legacy street", portal.Items.Single(row => row.Id == legacy.Id).Address);
     Assert.All(portal.Items.Where(row => row.Id != legacy.Id), row => {
-      Assert.Equal(expected, row.Address); Assert.Equal("Adams (Ilocos Norte)", row.Location);
+      Assert.Equal(expected, row.Address); Assert.Equal("Ilocos Norte - Adams", row.Location);
     });
     var directory = await new EByahe.Infrastructure.Repositories.PartnerDirectoryRepository(db).TerminalsAsync(partner.Id, 1, 10, default);
     Assert.All(directory!.Items.Where(row => row.Id != legacy.Id), row => Assert.Equal(expected, row.Address));
@@ -72,7 +104,7 @@ public sealed partial class SqlServerDatabaseTests
       using (response)
       {
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal("Quezon City (Metro Manila)", (await response.Content.ReadFromJsonAsync<PartnerPortalTerminal>())!.Location);
+        Assert.Equal("Metro Manila - Quezon City", (await response.Content.ReadFromJsonAsync<PartnerPortalTerminal>())!.Location);
       }
     }
     Assert.Equal(locationsBefore + 1, await db.Locations.CountAsync());

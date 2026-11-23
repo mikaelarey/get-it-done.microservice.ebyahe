@@ -28,7 +28,7 @@ public sealed partial class SqlServerDatabaseTests
       codeDecodeRegion = (int?)3, codeDecodeProvince = (int?)2, codeDecodeMunicipality = (int?)2, codeDecodeBarangay = (int?)2 };
     using var response = await client.PutAsJsonAsync(api + "/" + original.Id, command); Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     var updated = (await response.Content.ReadFromJsonAsync<PartnerPortalTerminal>())!;
-    Assert.Equal("Updated terminal", updated.Name); Assert.False(updated.IsActive); Assert.Equal("Bacarra (Ilocos Norte)", updated.Location);
+    Assert.Equal("Updated terminal", updated.Name); Assert.False(updated.IsActive); Assert.Equal("Ilocos Norte - Bacarra", updated.Location);
     Assert.Equal("New street, Bani, Bacarra, Ilocos Norte, Region I", updated.Address);
     // Saving unchanged details is valid; the unique index must not conflict with the record itself.
     Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(api + "/" + original.Id, command)).StatusCode);

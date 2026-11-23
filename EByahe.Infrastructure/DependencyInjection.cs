@@ -46,6 +46,7 @@ public static class DependencyInjection
     services.AddScoped<IPartnerMemberRepository, PartnerMemberRepository>();
     services.AddSingleton<IPartnerPasswordProtector>(_ => new PartnerPasswordProtector(configuration));
     services.AddScoped<IBusCatalogRepository, BusCatalogRepository>();
+    services.AddScoped<IHotelCatalogRepository, HotelCatalogRepository>();
     Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, TimeProvider.System);
     services.AddScoped<BusCatalogSeeder>();
     services.AddOptions<DocumentStorageOptions>().Bind(configuration.GetSection("Storage"))

@@ -28,9 +28,12 @@ public sealed class BookingPaymentRepository(EByaheDbContext database, IRecordCh
       || cash != cashBooking || (cash ? payment.PaymentType != "Cash" : payment.PaymentType is not (null or "GCash" or "Maya" or "Credit/Debit Card"))
       || booking.PaymentType is not null && payment.PaymentType is not null && booking.PaymentType != payment.PaymentType)
       throw new InvalidDataException("Payment details do not match this booking.");
-    if (cash && (payment.PartnerId is null || string.IsNullOrWhiteSpace(payment.AcceptedBy)
+    var cashExpiry = cash && payment.EventType == "payment.cancelled" && payment.CancellationReason == "cash_payment_expired";
+    if (cashExpiry && (payment.OccurredAtUtc < CashBookingPolicy.DueAt(booking) || payment.AcceptedBy is not null || booking.ReservedSeats != 0))
+      throw new InvalidDataException("Cash cancellation does not match the payment deadline.");
+    if (cash && (payment.PartnerId is null || !cashExpiry && string.IsNullOrWhiteSpace(payment.AcceptedBy)
       || !await database.ScheduledTrips.AnyAsync(trip => trip.Id == booking.ScheduledTripId && trip.PartnerId == payment.PartnerId, cancellationToken)
-      || !await database.PartnerUsers.AnyAsync(member => member.PartnerId == payment.PartnerId
+      || !cashExpiry && !await database.PartnerUsers.AnyAsync(member => member.PartnerId == payment.PartnerId
         && member.RefUser.ExternalUserId == payment.AcceptedBy, cancellationToken)))
       throw new InvalidDataException("Cash receipt has an invalid partner or accepting user.");
     // Membership was verified synchronously before the payment service committed the receipt.
@@ -52,7 +55,8 @@ public sealed class BookingPaymentRepository(EByaheDbContext database, IRecordCh
         booking.Status = "Cancelled";
         booking.PaymentStatus = "Cancelled";
         booking.PaymentType ??= payment.PaymentType;
-        note = "Booking cancelled before payment because the requested seats or departure are no longer available. Any existing payable checkout was expired before cancellation.";
+        note = cashExpiry ? CashBookingPolicy.ExpiredRemark
+          : "Booking cancelled before payment because the requested seats or departure are no longer available. Any existing payable checkout was expired before cancellation.";
       }
       else if (payment.PaymentStatus == "Payment Success" && booking.PaymentStatus != "Payment Success")
       {

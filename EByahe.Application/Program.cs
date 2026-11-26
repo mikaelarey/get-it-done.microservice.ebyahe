@@ -1,4 +1,6 @@
 using EByahe.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
 using EByahe.Application.Extensions;
 using EByahe.Infrastructure.Initialization;
 
@@ -7,6 +9,17 @@ using Microsoft.AspNetCore.SignalR;
 using EByahe.Domain.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
+// Enable only for the private IIS sites behind our loopback ARR gateway.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    if (!builder.Configuration.GetValue<bool>("ReverseProxy:Enabled")) return;
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+    options.ForwardLimit = 1;
+});
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, SubjectUserIdProvider>();
@@ -47,6 +60,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled")) app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 

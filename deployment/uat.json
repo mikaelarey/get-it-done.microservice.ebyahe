@@ -1,0 +1,13 @@
+{
+  "kind": "api",
+  "name": "ebyahe",
+  "repository": "get-it-done.microservice.ebyahe",
+  "hostName": "api-ebyahe-uat.getitdone.com.ph",
+  "buildPath": "artifacts/publish",
+  "project": "EByahe.Application/EByahe.Application.csproj",
+  "testProject": "EByahe.Tests/EByahe.Tests.csproj",
+  "assembly": "EByahe.Application.dll",
+  "port": 5103,
+  "probePath": "/api/partner/terminals",
+  "probeStatus": 401
+}

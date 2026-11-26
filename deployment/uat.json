@@ -2,6 +2,7 @@
   "kind": "api",
   "name": "ebyahe",
   "repository": "get-it-done.microservice.ebyahe",
+  "sourcePrivate": false,
   "hostName": "api-ebyahe-uat.getitdone.com.ph",
   "buildPath": "artifacts/publish",
   "project": "EByahe.Application/EByahe.Application.csproj",

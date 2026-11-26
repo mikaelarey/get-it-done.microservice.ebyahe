@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
-    if: github.repository == 'mikaelarey/get-it-done.microservice.ebyahe' && github.event.repository.private == true
+    if: github.repository == 'mikaelarey/get-it-done.microservice.ebyahe' && github.event.repository.private == false
     runs-on: windows-2022
     timeout-minutes: 35
     steps:
